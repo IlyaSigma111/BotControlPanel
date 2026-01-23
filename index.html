@@ -3,364 +3,400 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Хухря - Панель управления</title>
+    <title>J.A.R.V.I.S. - Интеллектуальная система</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Импорт Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+        import { getDatabase, ref, set, get, push, onValue, update, remove } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+
+        // Конфигурация Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyAnvmm5Y7qnFSauN_cJLQ8gVNXfvKKHjhA",
+            authDomain: "megajarvis-1380a.firebaseapp.com",
+            projectId: "megajarvis-1380a",
+            storageBucket: "megajarvis-1380a.firebasestorage.app",
+            messagingSenderId: "201588214892",
+            appId: "1:201588214892:web:0c51bbb0b247e5da171c49"
+        };
+
+        // Инициализация Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+        const auth = getAuth(app);
+
+        // Экспорт в глобальную область видимости
+        window.firebase = { database, ref, set, get, push, onValue, update, remove, auth, signInAnonymously, onAuthStateChanged };
+        
+        console.log("Firebase инициализирован!");
+    </script>
 </head>
 <body>
+    <!-- Контейнер -->
     <div class="container">
         <!-- Шапка -->
         <header class="header">
             <div class="logo">
-                <i class="fas fa-robot"></i>
-                <h1>Хухря Бот</h1>
-                <span class="status active">● Активен</span>
+                <div class="arc-reactor">
+                    <div class="reactor-core"></div>
+                </div>
+                <div class="logo-text">
+                    <h1 class="jarvis-title">J.A.R.V.I.S.</h1>
+                    <p class="jarvis-subtitle">Mark XLII Protocol Active</p>
+                </div>
+                <div class="system-status">
+                    <span class="status-dot" id="statusDot"></span>
+                    <span class="status-text" id="statusText">CONNECTING...</span>
+                </div>
             </div>
-            <div class="user-info">
-                <button id="logoutBtn" class="btn btn-logout">
-                    <i class="fas fa-sign-out-alt"></i> Выйти
+            
+            <div class="header-controls">
+                <div class="connection-status">
+                    <i class="fas fa-database"></i>
+                    <span id="dbStatus">Firebase: Подключение...</span>
+                </div>
+                <button class="btn-sync" onclick="syncData()">
+                    <i class="fas fa-sync-alt"></i> Синхронизация
                 </button>
             </div>
         </header>
 
-        <!-- Основной контент -->
-        <div class="main-content">
-            <!-- Левая панель -->
-            <nav class="sidebar">
-                <ul class="nav-menu">
-                    <li class="active"><a href="#dashboard"><i class="fas fa-tachometer-alt"></i> Панель</a></li>
-                    <li><a href="#jokes"><i class="fas fa-laugh"></i> Шутки</a></li>
-                    <li><a href="#magic-ball"><i class="fas fa-crystal-ball"></i> Магический шар</a></li>
-                    <li><a href="#users"><i class="fas fa-users"></i> Пользователи</a></li>
-                    <li><a href="#stats"><i class="fas fa-chart-bar"></i> Статистика</a></li>
-                    <li><a href="#settings"><i class="fas fa-cog"></i> Настройки</a></li>
-                </ul>
-                
-                <div class="bot-info">
-                    <h3>Информация о боте</h3>
-                    <p><strong>ID:</strong> <span id="botId">-</span></p>
-                    <p><strong>Имя:</strong> Хухря</p>
-                    <p><strong>Юзернейм:</strong> @huhrya_bot</p>
-                    <p><strong>Подписчики:</strong> <span id="subscribers">0</span></p>
+        <!-- Боковая панель -->
+        <nav class="sidebar">
+            <div class="user-profile">
+                <div class="avatar">
+                    <i class="fas fa-user-astronaut"></i>
                 </div>
-            </nav>
+                <div class="user-info">
+                    <h3 id="userName">Загрузка...</h3>
+                    <p>Система: <span class="access-level" id="userLevel">Онлайн</span></p>
+                </div>
+            </div>
 
-            <!-- Правая область -->
-            <div class="content-area">
-                <!-- Дашборд -->
-                <section id="dashboard" class="tab-content active">
-                    <div class="dashboard-header">
-                        <h2><i class="fas fa-tachometer-alt"></i> Панель управления</h2>
-                        <button id="startBot" class="btn btn-success">
-                            <i class="fas fa-play"></i> Запустить бота
+            <ul class="nav-menu">
+                <li class="active" data-tab="dashboard">
+                    <i class="fas fa-desktop"></i>
+                    <span>Главная</span>
+                </li>
+                <li data-tab="humor">
+                    <i class="fas fa-laugh-beam"></i>
+                    <span>Юмор-система</span>
+                    <span class="badge" id="jokesCount">0</span>
+                </li>
+                <li data-tab="predictions">
+                    <i class="fas fa-crystal-ball"></i>
+                    <span>Прогностика</span>
+                    <span class="badge" id="answersCount">0</span>
+                </li>
+                <li data-tab="users">
+                    <i class="fas fa-users"></i>
+                    <span>Пользователи</span>
+                    <span class="badge" id="usersCount">0</span>
+                </li>
+                <li data-tab="analytics">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Аналитика</span>
+                </li>
+                <li data-tab="settings">
+                    <i class="fas fa-cogs"></i>
+                    <span>Настройки</span>
+                </li>
+            </ul>
+
+            <div class="system-info">
+                <h4><i class="fas fa-server"></i> Статус Firebase</h4>
+                <div class="db-stats">
+                    <div class="stat-item">
+                        <span>Шутки:</span>
+                        <strong id="dbJokes">0</strong>
+                    </div>
+                    <div class="stat-item">
+                        <span>Ответы:</span>
+                        <strong id="dbAnswers">0</strong>
+                    </div>
+                    <div class="stat-item">
+                        <span>Пользователи:</span>
+                        <strong id="dbUsers">0</strong>
+                    </div>
+                    <div class="stat-item">
+                        <span>Логи:</span>
+                        <strong id="dbLogs">0</strong>
+                    </div>
+                </div>
+                <button class="btn-backup" onclick="createBackup()">
+                    <i class="fas fa-save"></i> Создать бэкап
+                </button>
+            </div>
+        </nav>
+
+        <!-- Основное содержимое -->
+        <main class="main-content">
+            <!-- Вкладка: Главная панель -->
+            <section id="dashboard" class="tab-content active">
+                <div class="tab-header">
+                    <h2><i class="fas fa-desktop"></i> Системный монитор</h2>
+                    <div class="ai-response-box">
+                        <div class="voice-indicator">
+                            <div class="voice-pulse"></div>
+                            <div class="voice-pulse"></div>
+                            <div class="voice-pulse"></div>
+                        </div>
+                        <p id="aiResponse">Инициализация систем... Подключение к базе данных...</p>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="activeUsers">0</h3>
+                            <p>Активных пользователей</p>
+                        </div>
+                        <div class="stat-source">Firebase</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-joke"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="totalJokes">0</h3>
+                            <p>Шуток в базе</p>
+                        </div>
+                        <div class="stat-source">Firebase</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-brain"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="totalAnswers">0</h3>
+                            <p>Ответов шара</p>
+                        </div>
+                        <div class="stat-source">Firebase</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="totalMessages">0</h3>
+                            <p>Сообщений сегодня</p>
+                        </div>
+                        <div class="stat-source">Firebase</div>
+                    </div>
+                </div>
+
+                <div class="dashboard-controls">
+                    <h3><i class="fas fa-rocket"></i> Команды управления</h3>
+                    <div class="controls-grid">
+                        <button class="control-btn" onclick="addSampleData()">
+                            <i class="fas fa-database"></i>
+                            <span>Добавить тестовые данные</span>
+                        </button>
+                        <button class="control-btn" onclick="clearAllData()">
+                            <i class="fas fa-trash"></i>
+                            <span>Очистить базу</span>
+                        </button>
+                        <button class="control-btn" onclick="exportData()">
+                            <i class="fas fa-file-export"></i>
+                            <span>Экспорт данных</span>
+                        </button>
+                        <button class="control-btn" onclick="importData()">
+                            <i class="fas fa-file-import"></i>
+                            <span>Импорт данных</span>
                         </button>
                     </div>
+                </div>
 
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-icon" style="background: #4CAF50;">
-                                <i class="fas fa-users"></i>
-                            </div>
-                            <div class="stat-info">
-                                <h3 id="totalUsers">0</h3>
-                                <p>Всего пользователей</p>
-                            </div>
-                        </div>
-                        
-                        <div class="stat-card">
-                            <div class="stat-icon" style="background: #2196F3;">
-                                <i class="fas fa-laugh"></i>
-                            </div>
-                            <div class="stat-info">
-                                <h3 id="totalJokes">0</h3>
-                                <p>Шуток отправлено</p>
-                            </div>
-                        </div>
-                        
-                        <div class="stat-card">
-                            <div class="stat-icon" style="background: #9C27B0;">
-                                <i class="fas fa-crystal-ball"></i>
-                            </div>
-                            <div class="stat-info">
-                                <h3 id="totalBalls">0</h3>
-                                <p>Ответов шара</p>
-                            </div>
-                        </div>
-                        
-                        <div class="stat-card">
-                            <div class="stat-icon" style="background: #FF9800;">
-                                <i class="fas fa-comments"></i>
-                            </div>
-                            <div class="stat-info">
-                                <h3 id="totalMessages">0</h3>
-                                <p>Всего сообщений</p>
-                            </div>
-                        </div>
+                <div class="realtime-data">
+                    <h3><i class="fas fa-bolt"></i> Реальное время</h3>
+                    <div class="data-stream" id="dataStream">
+                        <!-- Данные в реальном времени -->
                     </div>
+                </div>
+            </section>
 
-                    <div class="quick-actions">
-                        <h3>Быстрые действия</h3>
-                        <div class="actions-grid">
-                            <button class="action-btn" onclick="sendTestJoke()">
-                                <i class="fas fa-paper-plane"></i>
-                                <span>Отправить тестовую шутку</span>
-                            </button>
-                            <button class="action-btn" onclick="showAddJokeModal()">
-                                <i class="fas fa-plus"></i>
-                                <span>Добавить шутку</span>
-                            </button>
-                            <button class="action-btn" onclick="showBroadcastModal()">
-                                <i class="fas fa-bullhorn"></i>
-                                <span>Рассылка</span>
-                            </button>
-                            <button class="action-btn" onclick="showStatsModal()">
-                                <i class="fas fa-chart-pie"></i>
-                                <span>Детальная статистика</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="recent-activity">
-                        <h3>Последняя активность</h3>
-                        <div class="activity-list" id="activityList">
-                            <!-- Активность будет загружаться здесь -->
-                            <div class="activity-item">
-                                <i class="fas fa-info-circle"></i>
-                                <span>Загрузка...</span>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Управление шутками -->
-                <section id="jokes" class="tab-content">
-                    <div class="section-header">
-                        <h2><i class="fas fa-laugh"></i> Управление шутками</h2>
-                        <button class="btn btn-primary" onclick="showAddJokeModal()">
+            <!-- Вкладка: Юмор-система -->
+            <section id="humor" class="tab-content">
+                <div class="tab-header">
+                    <h2><i class="fas fa-laugh-beam"></i> Управление юмором</h2>
+                    <div class="tab-actions">
+                        <button class="btn-add" onclick="showAddJokeModal()">
                             <i class="fas fa-plus"></i> Добавить шутку
                         </button>
+                        <button class="btn-refresh" onclick="loadJokes()">
+                            <i class="fas fa-sync"></i> Обновить
+                        </button>
                     </div>
+                </div>
 
-                    <div class="filter-bar">
-                        <div class="search-box">
-                            <i class="fas fa-search"></i>
-                            <input type="text" id="jokeSearch" placeholder="Поиск шуток...">
-                        </div>
-                        <select id="categoryFilter" class="filter-select">
+                <div class="joke-management">
+                    <div class="joke-filters">
+                        <input type="text" id="jokeSearch" placeholder="Поиск шуток..." onkeyup="searchJokes()">
+                        <select id="categoryFilter" onchange="filterJokes()">
                             <option value="all">Все категории</option>
-                            <option value="обычные">Обычные</option>
-                            <option value="черный">Черный юмор</option>
-                            <option value="программистские">Программистские</option>
-                            <option value="абсурдные">Абсурдные</option>
-                        </select>
-                        <button class="btn btn-secondary" onclick="loadJokes()">
-                            <i class="fas fa-sync-alt"></i> Обновить
-                        </button>
-                    </div>
-
-                    <div class="jokes-list" id="jokesList">
-                        <!-- Шутки будут загружаться здесь -->
-                        <div class="loading">Загрузка шуток...</div>
-                    </div>
-
-                    <div class="pagination">
-                        <button class="btn btn-pagination" onclick="prevPage()">
-                            <i class="fas fa-chevron-left"></i>
-                        </button>
-                        <span id="pageInfo">Страница 1 из 1</span>
-                        <button class="btn btn-pagination" onclick="nextPage()">
-                            <i class="fas fa-chevron-right"></i>
-                        </button>
-                    </div>
-                </section>
-
-                <!-- Магический шар -->
-                <section id="magic-ball" class="tab-content">
-                    <div class="section-header">
-                        <h2><i class="fas fa-crystal-ball"></i> Магический шар</h2>
-                    </div>
-
-                    <div class="magic-ball-container">
-                        <div class="ball-wrapper">
-                            <div class="magic-ball" id="magicBall">
-                                <div class="ball-inner">
-                                    <div class="triangle">
-                                        <span class="answer" id="ballAnswer">8</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <button class="btn btn-magic" onclick="shakeBall()">
-                                <i class="fas fa-hand-rock"></i> Потрясти шар
-                            </button>
-                        </div>
-
-                        <div class="ball-controls">
-                            <h3>Управление ответами</h3>
-                            <div class="answers-list" id="answersList">
-                                <!-- Ответы будут загружаться здесь -->
-                            </div>
-                            
-                            <div class="add-answer-form">
-                                <h4>Добавить новый ответ</h4>
-                                <div class="form-group">
-                                    <input type="text" id="newAnswer" 
-                                           placeholder="Введите ответ для шара..." 
-                                           class="form-input">
-                                    <button class="btn btn-success" onclick="addAnswer()">
-                                        <i class="fas fa-plus"></i> Добавить
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Пользователи -->
-                <section id="users" class="tab-content">
-                    <div class="section-header">
-                        <h2><i class="fas fa-users"></i> Пользователи бота</h2>
-                    </div>
-
-                    <div class="users-table-container">
-                        <table class="users-table">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Имя</th>
-                                    <th>Юзернейм</th>
-                                    <th>Дата регистрации</th>
-                                    <th>Шутки</th>
-                                    <th>Ответы шара</th>
-                                    <th>Действия</th>
-                                </tr>
-                            </thead>
-                            <tbody id="usersTable">
-                                <!-- Данные пользователей -->
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-
-                <!-- Статистика -->
-                <section id="stats" class="tab-content">
-                    <div class="section-header">
-                        <h2><i class="fas fa-chart-bar"></i> Статистика</h2>
-                        <select id="timeRange" class="filter-select" onchange="updateCharts()">
-                            <option value="day">За день</option>
-                            <option value="week">За неделю</option>
-                            <option value="month">За месяц</option>
-                            <option value="all">За все время</option>
+                            <option value="tech">Технические</option>
+                            <option value="ai">ИИ-юмор</option>
+                            <option value="stark">Старковские</option>
+                            <option value="dark">Тёмный юмор</option>
                         </select>
                     </div>
 
-                    <div class="charts-container">
-                        <div class="chart-card">
-                            <h3>Активность по дням</h3>
-                            <canvas id="activityChart"></canvas>
-                        </div>
-                        <div class="chart-card">
-                            <h3>Распределение шуток</h3>
-                            <canvas id="jokesChart"></canvas>
-                        </div>
-                        <div class="chart-card">
-                            <h3>Топ пользователей</h3>
-                            <canvas id="usersChart"></canvas>
-                        </div>
-                        <div class="chart-card">
-                            <h3>Популярные ответы шара</h3>
-                            <canvas id="answersChart"></canvas>
-                        </div>
+                    <div class="jokes-container" id="jokesContainer">
+                        <!-- Шутки загружаются из Firebase -->
+                        <div class="loading">Загрузка шуток из базы данных...</div>
                     </div>
-                </section>
+                </div>
+            </section>
 
-                <!-- Настройки -->
-                <section id="settings" class="tab-content">
-                    <div class="section-header">
-                        <h2><i class="fas fa-cog"></i> Настройки бота</h2>
+            <!-- Вкладка: Прогностика -->
+            <section id="predictions" class="tab-content">
+                <div class="tab-header">
+                    <h2><i class="fas fa-crystal-ball"></i> Система предсказаний</h2>
+                </div>
+
+                <div class="prediction-system">
+                    <div class="ball-section">
+                        <div class="magic-ball" id="magicBall" onclick="shakeBall()">
+                            <div class="ball-content">
+                                <div class="triangle">
+                                    <span class="ball-text" id="ballText">8</span>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="ball-hint">Нажмите на шар для предсказания</p>
                     </div>
 
-                    <div class="settings-grid">
-                        <div class="settings-card">
-                            <h3><i class="fas fa-comment"></i> Тексты бота</h3>
-                            <div class="setting-item">
-                                <label>Приветственное сообщение</label>
-                                <textarea id="welcomeMessage" class="form-textarea">
-Привет! Я Хухря - бот с шутками на любой вкус! 🎭
-                                </textarea>
-                            </div>
-                            <div class="setting-item">
-                                <label>Сообщение помощи</label>
-                                <textarea id="helpMessage" class="form-textarea">
-Доступные команды:
-/шутка - случайная шутка
-/обычная - обычная шутка
-/черная - черный юмор
-/программистская - для IT-шников
-/абсурдная - абсурдный юмор
-/шар [вопрос] - магический шар
-                                </textarea>
-                            </div>
-                            <button class="btn btn-primary" onclick="saveTexts()">
-                                <i class="fas fa-save"></i> Сохранить тексты
+                    <div class="answers-management">
+                        <h3><i class="fas fa-list"></i> База ответов</h3>
+                        <div class="answers-list" id="answersList">
+                            <!-- Ответы загружаются из Firebase -->
+                        </div>
+                        <div class="add-answer-form">
+                            <input type="text" id="newAnswer" placeholder="Новый ответ...">
+                            <button onclick="addAnswer()">
+                                <i class="fas fa-plus"></i> Добавить
                             </button>
                         </div>
+                    </div>
+                </div>
+            </section>
 
-                        <div class="settings-card">
-                            <h3><i class="fas fa-robot"></i> Настройки бота</h3>
-                            <div class="setting-item">
-                                <label>Токен бота</label>
-                                <input type="password" id="botToken" class="form-input" 
-                                       value="Токен скрыт">
-                                <button class="btn btn-small" onclick="toggleToken()">
-                                    Показать/Скрыть
+            <!-- Вкладка: Пользователи -->
+            <section id="users" class="tab-content">
+                <div class="tab-header">
+                    <h2><i class="fas fa-users"></i> Управление пользователями</h2>
+                </div>
+
+                <div class="users-management">
+                    <table class="users-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Имя</th>
+                                <th>Тег</th>
+                                <th>Дата регистрации</th>
+                                <th>Шутки получено</th>
+                                <th>Прогнозов</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTable">
+                            <!-- Пользователи загружаются из Firebase -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Вкладка: Аналитика -->
+            <section id="analytics" class="tab-content">
+                <div class="tab-header">
+                    <h2><i class="fas fa-chart-line"></i> Аналитика системы</h2>
+                </div>
+
+                <div class="analytics-dashboard">
+                    <div class="chart-container">
+                        <canvas id="jokesChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="usersChart"></canvas>
+                    </div>
+                    <div class="stats-overview">
+                        <div class="stat-box">
+                            <h4>Популярные категории</h4>
+                            <div id="categoryStats"></div>
+                        </div>
+                        <div class="stat-box">
+                            <h4>Активность</h4>
+                            <div id="activityStats"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Вкладка: Настройки -->
+            <section id="settings" class="tab-content">
+                <div class="tab-header">
+                    <h2><i class="fas fa-cogs"></i> Настройки системы</h2>
+                </div>
+
+                <div class="settings-panel">
+                    <div class="settings-section">
+                        <h3><i class="fas fa-database"></i> Настройки Firebase</h3>
+                        <div class="setting-item">
+                            <label>Путь к базе:</label>
+                            <input type="text" id="dbPath" value="jarvis/" readonly>
+                        </div>
+                        <div class="setting-item">
+                            <label>Автосинхронизация:</label>
+                            <label class="switch">
+                                <input type="checkbox" id="autoSync" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3><i class="fas fa-shield-alt"></i> Безопасность</h3>
+                        <div class="setting-item">
+                            <label>Ключ API:</label>
+                            <div class="api-key">
+                                <input type="password" id="apiKey" value="скрыто">
+                                <button onclick="toggleApiKey()">
+                                    <i class="fas fa-eye"></i>
                                 </button>
                             </div>
-                            <div class="setting-item">
-                                <label>Шанс ответа шуткой на сообщение (%)</label>
-                                <input type="range" id="jokeChance" min="0" max="100" value="30" 
-                                       class="form-range" onchange="updateChanceValue()">
-                                <span id="chanceValue">30%</span>
-                            </div>
-                            <div class="setting-item">
-                                <label>Автоответчик</label>
-                                <div class="toggle-switch">
-                                    <input type="checkbox" id="autoReply" checked>
-                                    <span class="slider"></span>
-                                </div>
-                                <span class="toggle-label">Включен</span>
-                            </div>
-                            <button class="btn btn-primary" onclick="saveBotSettings()">
-                                <i class="fas fa-save"></i> Сохранить настройки
-                            </button>
-                        </div>
-
-                        <div class="settings-card">
-                            <h3><i class="fas fa-bell"></i> Уведомления</h3>
-                            <div class="setting-item">
-                                <label>Уведомлять о новых пользователях</label>
-                                <div class="toggle-switch">
-                                    <input type="checkbox" id="notifyNewUsers" checked>
-                                    <span class="slider"></span>
-                                </div>
-                            </div>
-                            <div class="setting-item">
-                                <label>Уведомлять об ошибках</label>
-                                <div class="toggle-switch">
-                                    <input type="checkbox" id="notifyErrors" checked>
-                                    <span class="slider"></span>
-                                </div>
-                            </div>
-                            <div class="setting-item">
-                                <label>Email для уведомлений</label>
-                                <input type="email" id="notifyEmail" class="form-input" 
-                                       placeholder="ваш@email.com">
-                            </div>
-                            <button class="btn btn-primary" onclick="saveNotifications()">
-                                <i class="fas fa-save"></i> Сохранить
-                            </button>
                         </div>
                     </div>
-                </section>
+                </div>
+            </section>
+        </main>
+
+        <!-- Терминал -->
+        <div class="jarvis-terminal">
+            <div class="terminal-header">
+                <i class="fas fa-terminal"></i> Логи Firebase
+                <button class="btn-clear" onclick="clearLogs()">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+            <div class="terminal-body">
+                <div class="terminal-output" id="firebaseLogs">
+                    <div class="log-entry">
+                        <span class="timestamp">[12:00:00]</span>
+                        <span class="log-message">Инициализация системы...</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -369,105 +405,48 @@
     <div id="addJokeModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3><i class="fas fa-plus"></i> Добавить шутку</h3>
-                <span class="close" onclick="closeModal('addJokeModal')">&times;</span>
+                <h3><i class="fas fa-plus"></i> Новая шутка</h3>
+                <button class="btn-close" onclick="closeModal('addJokeModal')">×</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
                     <label>Текст шутки:</label>
-                    <textarea id="newJokeText" class="form-textarea" 
-                              placeholder="Введите текст шутки..." rows="4"></textarea>
+                    <textarea id="jokeText" rows="3" placeholder="Введите текст шутки..."></textarea>
                 </div>
                 <div class="form-group">
                     <label>Категория:</label>
-                    <select id="newJokeCategory" class="form-select">
-                        <option value="обычные">Обычные</option>
-                        <option value="черный">Черный юмор</option>
-                        <option value="программистские">Программистские</option>
-                        <option value="абсурдные">Абсурдные</option>
+                    <select id="jokeCategory">
+                        <option value="tech">Техническая</option>
+                        <option value="ai">ИИ-юмор</option>
+                        <option value="stark">Старковская</option>
+                        <option value="dark">Тёмный юмор</option>
                     </select>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('addJokeModal')">
-                    Отмена
-                </button>
-                <button class="btn btn-primary" onclick="saveNewJoke()">
-                    <i class="fas fa-save"></i> Сохранить шутку
-                </button>
+                <button onclick="closeModal('addJokeModal')">Отмена</button>
+                <button onclick="saveJokeToFirebase()" class="btn-primary">Сохранить в Firebase</button>
             </div>
         </div>
     </div>
 
-    <div id="broadcastModal" class="modal">
+    <div id="backupModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3><i class="fas fa-bullhorn"></i> Рассылка сообщений</h3>
-                <span class="close" onclick="closeModal('broadcastModal')">&times;</span>
+                <h3><i class="fas fa-save"></i> Бэкап данных</h3>
+                <button class="btn-close" onclick="closeModal('backupModal')">×</button>
             </div>
             <div class="modal-body">
-                <div class="form-group">
-                    <label>Сообщение:</label>
-                    <textarea id="broadcastMessage" class="form-textarea" 
-                              placeholder="Введите сообщение для рассылки..." rows="5"></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Отправить всем пользователям:</label>
-                    <div class="user-count">
-                        <span id="broadcastUserCount">0</span> пользователей
-                    </div>
-                </div>
+                <textarea id="backupData" rows="10" readonly></textarea>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('broadcastModal')">
-                    Отмена
-                </button>
-                <button class="btn btn-danger" onclick="sendBroadcast()">
-                    <i class="fas fa-paper-plane"></i> Отправить рассылку
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <div id="testMessageModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-paper-plane"></i> Тестовое сообщение</h3>
-                <span class="close" onclick="closeModal('testMessageModal')">&times;</span>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label>ID пользователя (оставьте пустым для себя):</label>
-                    <input type="text" id="testUserId" class="form-input" 
-                           placeholder="ID пользователя Telegram">
-                </div>
-                <div class="form-group">
-                    <label>Сообщение:</label>
-                    <textarea id="testMessage" class="form-textarea" 
-                              placeholder="Введите тестовое сообщение..." rows="3"></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Тип сообщения:</label>
-                    <select id="testMessageType" class="form-select">
-                        <option value="text">Текст</option>
-                        <option value="joke">Шутка</option>
-                        <option value="ball">Ответ шара</option>
-                    </select>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('testMessageModal')">
-                    Отмена
-                </button>
-                <button class="btn btn-primary" onclick="sendTestMessage()">
-                    <i class="fas fa-paper-plane"></i> Отправить
-                </button>
+                <button onclick="downloadBackup()">Скачать JSON</button>
+                <button onclick="copyBackup()">Копировать</button>
             </div>
         </div>
     </div>
 
     <!-- Скрипты -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

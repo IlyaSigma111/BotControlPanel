@@ -8,63 +8,52 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         /* Стили для экрана входа */
-        .login-overlay {
+        .login-screen {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.95);
+            background: #0f0c29;
             display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 9999;
-            backdrop-filter: blur(5px);
+            z-index: 1000;
         }
         
         .login-box {
-            background: linear-gradient(145deg, #0f0c29, #302b63);
+            background: rgba(255, 255, 255, 0.05);
             border-radius: 20px;
             padding: 40px;
             width: 90%;
             max-width: 400px;
             text-align: center;
-            border: 1px solid rgba(0, 188, 212, 0.3);
-            box-shadow: 0 0 40px rgba(0, 188, 212, 0.3);
-            animation: fadeIn 0.5s;
+            border: 1px solid #00bcd4;
+            box-shadow: 0 0 30px rgba(0, 188, 212, 0.3);
         }
         
-        @keyframes fadeIn {
-            from { opacity: 0; transform: scale(0.9); }
-            to { opacity: 1; transform: scale(1); }
-        }
-        
-        .login-header {
+        .login-logo {
             margin-bottom: 30px;
         }
         
-        .login-header i {
+        .login-logo i {
             font-size: 60px;
             color: #00bcd4;
-            margin-bottom: 15px;
-            animation: pulse 2s infinite;
+            margin-bottom: 20px;
         }
         
-        .login-header h1 {
-            font-size: 24px;
-            margin: 0;
-            background: linear-gradient(45deg, #00bcd4, #00e5ff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        .login-logo h1 {
+            font-size: 28px;
+            color: white;
+            margin-bottom: 10px;
         }
         
         .login-subtitle {
             color: #90a4ae;
             font-size: 14px;
-            margin-top: 5px;
         }
         
-        .login-input {
+        #accessCode {
             width: 100%;
             padding: 15px;
             background: rgba(255, 255, 255, 0.1);
@@ -72,38 +61,31 @@
             border-radius: 10px;
             color: white;
             font-size: 16px;
-            margin-bottom: 15px;
-            transition: all 0.3s;
+            margin-bottom: 20px;
+            outline: none;
         }
         
-        .login-input:focus {
-            outline: none;
+        #accessCode:focus {
             border-color: #00bcd4;
-            box-shadow: 0 0 15px rgba(0, 188, 212, 0.5);
         }
         
         .login-btn {
             width: 100%;
             padding: 15px;
-            background: linear-gradient(45deg, #00bcd4, #0097a7);
+            background: #00bcd4;
             border: none;
             border-radius: 10px;
             color: white;
             font-size: 16px;
-            font-weight: 600;
+            font-weight: bold;
             cursor: pointer;
-            transition: all 0.3s;
-            margin-top: 10px;
+            margin-bottom: 15px;
+            transition: 0.3s;
         }
         
         .login-btn:hover {
-            background: linear-gradient(45deg, #0097a7, #00bcd4);
+            background: #0097a7;
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(0, 188, 212, 0.3);
-        }
-        
-        .login-btn:active {
-            transform: translateY(0);
         }
         
         .ghost-btn {
@@ -115,20 +97,14 @@
             color: #9c27b0;
             font-size: 14px;
             cursor: pointer;
-            transition: all 0.3s;
-            margin-top: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
+            transition: 0.3s;
         }
         
         .ghost-btn:hover {
             background: rgba(156, 39, 176, 0.1);
-            transform: translateY(-2px);
         }
         
-        .login-error {
+        #loginError {
             margin-top: 15px;
             padding: 10px;
             background: rgba(244, 67, 54, 0.1);
@@ -139,6 +115,12 @@
             display: none;
         }
         
+        .attempts {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #ff9800;
+        }
+        
         .login-footer {
             margin-top: 25px;
             padding-top: 20px;
@@ -147,55 +129,40 @@
             font-size: 12px;
         }
         
-        .attempts {
-            margin-top: 10px;
-            font-size: 12px;
-            color: #ff9800;
-        }
-        
-        /* Главный контент - скрыт по умолчанию */
+        /* Главный контент */
         #mainContent {
             display: none;
-        }
-        
-        /* Анимации */
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
         }
     </style>
 </head>
 <body>
     <!-- Экран входа -->
-    <div id="loginScreen" class="login-overlay">
+    <div id="loginScreen" class="login-screen">
         <div class="login-box">
-            <div class="login-header">
+            <div class="login-logo">
                 <i class="fas fa-lock"></i>
                 <h1>JARVIS CONTROL</h1>
-                <p class="login-subtitle">Защищенный доступ к системе</p>
+                <p class="login-subtitle">Система управления ботом</p>
             </div>
             
-            <input type="password" id="accessCode" class="login-input" 
-                   placeholder="Введите код доступа" 
-                   onkeypress="if(event.key === 'Enter') checkAccessCode()">
+            <input type="password" id="accessCode" placeholder="Введите код доступа">
             
             <button class="login-btn" onclick="checkAccessCode()">
-                <i class="fas fa-sign-in-alt"></i> Войти в систему
+                <i class="fas fa-sign-in-alt"></i> ВОЙТИ В СИСТЕМУ
             </button>
             
             <button class="ghost-btn" onclick="phantomAccess()">
                 <i class="fas fa-ghost"></i> Фантомный доступ
             </button>
             
-            <div id="loginError" class="login-error"></div>
+            <div id="loginError"></div>
             
-            <div class="attempts" id="attemptsCounter">
-                Осталось попыток: <span id="attemptsCount">3</span>
+            <div class="attempts">
+                Попытки: <span id="attemptsCount">3</span>/3
             </div>
             
             <div class="login-footer">
-                <p>Система защиты активирована</p>
-                <p style="font-size: 10px; margin-top: 5px;">Код: JojoTop1</p>
+                <p>Код доступа: JojoTop1</p>
             </div>
         </div>
     </div>
@@ -206,40 +173,26 @@
             <div class="logo">
                 <i class="fas fa-robot"></i>
                 <h1>JARVIS BOT CONTROL</h1>
-                <div class="access-badge">
-                    <i class="fas fa-user-shield"></i> Администратор
-                </div>
             </div>
             <p class="subtitle">Панель управления Telegram ботом</p>
             <div class="status">
                 <div class="status-dot"></div>
-                <span id="statusText">Проверка бота...</span>
+                <span id="statusText">Подключение...</span>
             </div>
             
             <!-- Переключатель чата -->
             <div class="chat-mode-selector">
-                <div class="mode-option active" data-mode="group" onclick="setChatMode('group')">
+                <div class="mode-option active" onclick="setChatMode('group')">
                     <i class="fas fa-users"></i>
                     <span>Группа</span>
                 </div>
-                <div class="mode-option" data-mode="personal" onclick="setChatMode('personal')">
+                <div class="mode-option" onclick="setChatMode('personal')">
                     <i class="fas fa-user"></i>
                     <span>Личный чат</span>
                 </div>
             </div>
-            <div class="current-chat-info" id="currentChatInfo">
+            <div class="current-chat-info">
                 📢 Отправка в группу: -1003835999605
-            </div>
-            
-            <!-- Информация о сессии -->
-            <div class="session-info">
-                <div class="session-timer">
-                    <i class="fas fa-clock"></i>
-                    <span id="sessionTimer">30:00</span>
-                </div>
-                <button class="btn-logout" onclick="logout()">
-                    <i class="fas fa-sign-out-alt"></i> Выйти
-                </button>
             </div>
         </header>
         
@@ -287,12 +240,6 @@
                     <button class="quick-btn" onclick="sendJoke()">
                         <i class="fas fa-paper-plane"></i> Отправить шутку
                     </button>
-                    <button class="quick-btn" onclick="addJoke()">
-                        <i class="fas fa-plus"></i> Добавить свою
-                    </button>
-                    <button class="quick-btn" onclick="getJokeStats()">
-                        <i class="fas fa-chart-bar"></i> Статистика
-                    </button>
                 </div>
                 
                 <div id="jokeResponse" class="response-box"></div>
@@ -312,17 +259,6 @@
                     <i class="fas fa-hand-rock"></i> Потрясти шар
                 </button>
                 
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <div class="stat-value" id="ballAnswers">42</div>
-                        <div class="stat-label">Ответов в базе</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value" id="ballUsed">156</div>
-                        <div class="stat-label">Раз использовано</div>
-                    </div>
-                </div>
-                
                 <div id="ballResponse" class="response-box"></div>
             </div>
             
@@ -331,7 +267,7 @@
                 <h2><i class="fas fa-cogs"></i> Управление ботом</h2>
                 
                 <div class="form-group">
-                    <label>Команды управления</label>
+                    <label>Команды</label>
                     <select id="botCommand" class="form-control">
                         <option value="status">Проверить статус</option>
                         <option value="stats">Получить статистику</option>
@@ -340,21 +276,8 @@
                 </div>
                 
                 <button class="btn" onclick="executeBotCommand()">
-                    <i class="fas fa-play"></i> Выполнить команду
+                    <i class="fas fa-play"></i> Выполнить
                 </button>
-                
-                <div class="quick-actions" style="margin-top: 20px;">
-                    <button class="quick-btn" onclick="getBotInfo()">
-                        <i class="fas fa-info-circle"></i> Информация о боте
-                    </button>
-                    <button class="quick-btn" onclick="getUserCount()">
-                        <i class="fas fa-users"></i> Количество пользователей
-                    </button>
-                </div>
-                
-                <div class="loading" id="botLoading">
-                    <i class="fas fa-spinner"></i> Выполняю команду...
-                </div>
                 
                 <div id="commandResponse" class="response-box"></div>
             </div>
@@ -362,7 +285,7 @@
         
         <!-- Быстрые шутки -->
         <div class="card" style="grid-column: 1 / -1;">
-            <h2><i class="fas fa-bolt"></i> Быстрые шутки (нажмите для отправки)</h2>
+            <h2><i class="fas fa-bolt"></i> Быстрые шутки</h2>
             <div class="quick-actions" style="grid-template-columns: repeat(4, 1fr);">
                 <button class="quick-btn" onclick="sendQuickJoke('programming')">
                     <i class="fas fa-code"></i> Техническая
@@ -379,59 +302,10 @@
             </div>
         </div>
         
-        <!-- Статистика -->
-        <div class="card" style="grid-column: 1 / -1;">
-            <h2><i class="fas fa-chart-line"></i> Статистика бота</h2>
-            <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
-                <div class="stat-item">
-                    <div class="stat-value" id="totalUsers">0</div>
-                    <div class="stat-label">Пользователей</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="totalJokes">0</div>
-                    <div class="stat-label">Шуток отправлено</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="totalBalls">0</div>
-                    <div class="stat-label">Ответов шара</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="totalMessages">0</div>
-                    <div class="stat-label">Всего сообщений</div>
-                </div>
-            </div>
-            <button class="btn btn-secondary" onclick="updateStats()" style="margin-top: 20px;">
-                <i class="fas fa-sync-alt"></i> Обновить статистику
-            </button>
-        </div>
-        
-        <!-- Секретная панель фантомов -->
-        <div class="card phantom-panel" style="grid-column: 1 / -1; display: none;" id="phantomPanel">
-            <h2><i class="fas fa-ghost"></i> Панель фантомов</h2>
-            <div class="phantom-controls">
-                <div class="phantom-stat">
-                    <h3>Фантомная активность</h3>
-                    <p>Общее количество фантомов: <strong id="totalPhantoms">0</strong></p>
-                    <p>Последний фантом: <span id="lastPhantomTime">никогда</span></p>
-                </div>
-                <div class="phantom-actions">
-                    <button class="btn btn-phantom-action" onclick="simulatePhantomClick()">
-                        <i class="fas fa-hand-point-up"></i> Симулировать нажатие на шар
-                    </button>
-                    <button class="btn btn-phantom-action" onclick="simulatePhantomJoke()">
-                        <i class="fas fa-laugh"></i> Симулировать отправку шутки
-                    </button>
-                    <button class="btn btn-phantom-action" onclick="activateAutoPhantom()">
-                        <i class="fas fa-robot"></i> Авто-фантом (30 сек)
-                    </button>
-                </div>
-            </div>
-        </div>
-        
         <footer>
-            <p>JARVIS Bot Control Panel © 2024 | ID группы: -1003835999605</p>
+            <p>JARVIS Bot Control Panel © 2024</p>
             <p style="margin-top: 10px; font-size: 0.8rem; color: #666;">
-                <i class="fas fa-exclamation-triangle"></i> Система защищена от несанкционированного доступа
+                Группа: -1003835999605
             </p>
         </footer>
     </div>

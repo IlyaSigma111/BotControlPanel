@@ -6,57 +6,207 @@
     <title>JARVIS Bot Control</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Стили для экрана входа */
+        .login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            backdrop-filter: blur(5px);
+        }
+        
+        .login-box {
+            background: linear-gradient(145deg, #0f0c29, #302b63);
+            border-radius: 20px;
+            padding: 40px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            border: 1px solid rgba(0, 188, 212, 0.3);
+            box-shadow: 0 0 40px rgba(0, 188, 212, 0.3);
+            animation: fadeIn 0.5s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        .login-header {
+            margin-bottom: 30px;
+        }
+        
+        .login-header i {
+            font-size: 60px;
+            color: #00bcd4;
+            margin-bottom: 15px;
+            animation: pulse 2s infinite;
+        }
+        
+        .login-header h1 {
+            font-size: 24px;
+            margin: 0;
+            background: linear-gradient(45deg, #00bcd4, #00e5ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .login-subtitle {
+            color: #90a4ae;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        
+        .login-input {
+            width: 100%;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            color: white;
+            font-size: 16px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+        
+        .login-input:focus {
+            outline: none;
+            border-color: #00bcd4;
+            box-shadow: 0 0 15px rgba(0, 188, 212, 0.5);
+        }
+        
+        .login-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(45deg, #00bcd4, #0097a7);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+        
+        .login-btn:hover {
+            background: linear-gradient(45deg, #0097a7, #00bcd4);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 188, 212, 0.3);
+        }
+        
+        .login-btn:active {
+            transform: translateY(0);
+        }
+        
+        .ghost-btn {
+            width: 100%;
+            padding: 12px;
+            background: transparent;
+            border: 2px solid #9c27b0;
+            border-radius: 10px;
+            color: #9c27b0;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .ghost-btn:hover {
+            background: rgba(156, 39, 176, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        .login-error {
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(244, 67, 54, 0.1);
+            border: 1px solid rgba(244, 67, 54, 0.3);
+            border-radius: 8px;
+            color: #f44336;
+            font-size: 14px;
+            display: none;
+        }
+        
+        .login-footer {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: #78909c;
+            font-size: 12px;
+        }
+        
+        .attempts {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #ff9800;
+        }
+        
+        /* Главный контент - скрыт по умолчанию */
+        #mainContent {
+            display: none;
+        }
+        
+        /* Анимации */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+    </style>
 </head>
 <body>
     <!-- Экран входа -->
-    <div id="loginScreen" class="login-screen">
-        <div class="login-container">
-            <div class="login-logo">
-                <i class="fas fa-robot"></i>
-                <h1>JARVIS SECURE ACCESS</h1>
+    <div id="loginScreen" class="login-overlay">
+        <div class="login-box">
+            <div class="login-header">
+                <i class="fas fa-lock"></i>
+                <h1>JARVIS CONTROL</h1>
+                <p class="login-subtitle">Защищенный доступ к системе</p>
             </div>
-            <div class="login-form">
-                <div class="form-group">
-                    <label for="accessCode">Код доступа</label>
-                    <input type="password" id="accessCode" class="form-control" 
-                           placeholder="Введите код доступа..." 
-                           onkeypress="checkEnter(event)">
-                    <div class="hint">Подсказка: Код состоит из 8 символов</div>
-                </div>
-                <button class="btn btn-login" onclick="checkAccessCode()">
-                    <i class="fas fa-lock"></i> Войти в систему
-                </button>
-                <div class="login-error" id="loginError"></div>
-                
-                <!-- Счетчик попыток -->
-                <div class="attempts-counter" id="attemptsCounter">
-                    Попыток: <span id="attemptsCount">3</span>/3
-                </div>
-                
-                <!-- Фантомный доступ -->
-                <div class="phantom-access">
-                    <button class="btn-phantom" onclick="phantomAccess()">
-                        <i class="fas fa-ghost"></i> Фантомный доступ
-                    </button>
-                    <div class="phantom-info">
-                        Счётчик фантомов: <span id="phantomCount">0</span>
-                    </div>
-                </div>
+            
+            <input type="password" id="accessCode" class="login-input" 
+                   placeholder="Введите код доступа" 
+                   onkeypress="if(event.key === 'Enter') checkAccessCode()">
+            
+            <button class="login-btn" onclick="checkAccessCode()">
+                <i class="fas fa-sign-in-alt"></i> Войти в систему
+            </button>
+            
+            <button class="ghost-btn" onclick="phantomAccess()">
+                <i class="fas fa-ghost"></i> Фантомный доступ
+            </button>
+            
+            <div id="loginError" class="login-error"></div>
+            
+            <div class="attempts" id="attemptsCounter">
+                Осталось попыток: <span id="attemptsCount">3</span>
             </div>
             
             <div class="login-footer">
-                <p>⚠️ Несанкционированный доступ запрещён</p>
+                <p>Система защиты активирована</p>
+                <p style="font-size: 10px; margin-top: 5px;">Код: JojoTop1</p>
             </div>
         </div>
     </div>
     
-    <!-- Основной контент (скрыт до входа) -->
-    <div id="mainContent" class="container" style="display: none;">
+    <!-- Основной контент -->
+    <div id="mainContent" class="container">
         <header>
             <div class="logo">
                 <i class="fas fa-robot"></i>
                 <h1>JARVIS BOT CONTROL</h1>
-                <div class="access-badge" id="accessBadge">
+                <div class="access-badge">
                     <i class="fas fa-user-shield"></i> Администратор
                 </div>
             </div>

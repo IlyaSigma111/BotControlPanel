@@ -1,74 +1,487 @@
-// ===== ПРОСТАЯ СИСТЕМА ЛОГИНА =====
-const ACCESS_CODE = "JojoTop1";
-let attemptsLeft = 3;
-let isLoggedIn = false;
+// ===== СИСТЕМА УПРАВЛЕНИЯ ГРУППАМИ =====
 
-// Проверка при загрузке
-document.addEventListener('DOMContentLoaded', function() {
-    console.log("Сайт загружен");
-    updateAttemptsDisplay();
-});
+// Инициализация групп при первом запуске
+function initializeGroups() {
+    // Загружаем группы из localStorage
+    const savedGroups = localStorage.getItem('jarvis_groups');
+    
+    if (savedGroups) {
+        try {
+            groups = JSON.parse(savedGroups);
+            console.log(`Загружено ${groups.length} групп из localStorage`);
+        } catch (e) {
+            console.error("Ошибка загрузки групп:", e);
+            createDefaultGroups();
+        }
+    } else {
+        // Создаем дефолтную группу если нет сохраненных
+        createDefaultGroups();
+    }
+    
+    // Обновляем UI
+    updateGroupSelector();
+    updateGroupsList();
+    updateCurrentGroupInfo();
+    updateGroupsCount();
+}
 
-// ОБНОВЛЕННАЯ ФУНКЦИЯ ВХОДА
-function checkAccessCode() {
-    console.log("Нажата кнопка входа");
+// Создание дефолтных групп
+function createDefaultGroups() {
+    groups = [{
+        id: '-1003835999605',
+        name: 'Основная группа',
+        added: new Date().toLocaleDateString(),
+        messagesSent: 0,
+        lastUsed: null
+    }];
+    saveGroups();
+}
+
+// Сохранение групп в localStorage
+function saveGroups() {
+    localStorage.setItem('jarvis_groups', JSON.stringify(groups));
+    console.log(`Сохранено ${groups.length} групп`);
+}
+
+// Обновление селектора групп
+function updateGroupSelector() {
+    const selector = document.getElementById('groupSelector');
+    if (!selector) return;
     
-    const codeInput = document.getElementById('accessCode').value;
-    const errorElement = document.getElementById('loginError');
+    // Сохраняем текущее значение
+    const currentValue = selector.value;
     
-    console.log("Введен код:", codeInput);
+    // Очищаем список
+    selector.innerHTML = '';
     
-    if (!codeInput) {
-        errorElement.textContent = "⚠️ Введите код доступа";
-        errorElement.style.display = "block";
+    // Добавляем группы
+    groups.forEach(group => {
+        const option = document.createElement('option');
+        option.value = group.id;
+        option.textContent = group.name + ` (${group.id})`;
+        selector.appendChild(option);
+    });
+    
+    // Восстанавливаем выбранное значение если возможно
+    if (currentValue && groups.some(g => g.id === currentValue)) {
+        selector.value = currentValue;
+    } else if (groups.length > 0) {
+        selector.value = groups[0].id;
+    }
+    
+    // Обновляем текущую выбранную группу
+    updateCurrentGroupInfo();
+}
+
+// Обновление списка групп в UI
+function updateGroupsList() {
+    const groupsList = document.getElementById('groupsList');
+    if (!groupsList) return;
+    
+    // Очищаем список
+    groupsList.innerHTML = '';
+    
+    if (groups.length === 0) {
+        groupsList.innerHTML = '<div class="empty-message">📭 Нет сохраненных групп</div>';
         return;
     }
     
-    if (codeInput === ACCESS_CODE) {
-        console.log("Правильный код!");
-        loginSuccess();
-    } else {
-        console.log("Неправильный код!");
-        attemptsLeft--;
-        updateAttemptsDisplay();
+    // Добавляем каждую группу
+    groups.forEach((group, index) => {
+        const groupItem = document.createElement('div');
+        groupItem.className = 'group-item';
+        groupItem.innerHTML = `
+            <div class="group-info">
+                <div class="group-name">${group.name}</div>
+                <div class="group-id">${group.id}</div>
+                <div class="group-meta">
+                    Добавлено: ${group.added} | Отправок: ${group.messagesSent || 0}
+                </div>
+            </div>
+            <div class="group-actions">
+                <button class="group-action-btn" onclick="selectGroup('${group.id}')" title="Выбрать">
+                    <i class="fas fa-check"></i>
+                </button>
+                <button class="group-action-btn" onclick="editGroup(${index})" title="Редактировать">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="group-action-btn" onclick="removeGroup(${index})" title="Удалить">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        `;
+        groupsList.appendChild(groupItem);
+    });
+}
+
+// Обновление информации о текущей группе
+function updateCurrentGroupInfo() {
+    const groupSelector = document.getElementById('groupSelector');
+    const currentGroupInfo = document.getElementById('currentGroupInfo');
+    const currentChatInfo = document.getElementById('currentChatInfo');
+    
+    if (!groupSelector || !currentGroupInfo || !currentChatInfo) return;
+    
+    const selectedGroupId = groupSelector.value;
+    const group = groups.find(g => g.id === selectedGroupId);
+    
+    if (group) {
+        currentGroupInfo.innerHTML = `📢 Выбрана группа: ${group.name} (${group.id})`;
+        currentChatInfo.innerHTML = `📢 Отправка в группу: ${group.id}`;
         
-        if (attemptsLeft <= 0) {
-            errorElement.textContent = "❌ Доступ заблокирован на 5 минут";
-            errorElement.style.display = "block";
-            disableLogin();
-            
-            setTimeout(() => {
-                attemptsLeft = 3;
-                updateAttemptsDisplay();
-                enableLogin();
-                errorElement.style.display = "none";
-            }, 300000);
+        // Сохраняем текущую группу в глобальные переменные
+        currentGroupId = group.id;
+        currentGroupName = group.name;
+    }
+}
+
+// Обновление счетчика групп
+function updateGroupsCount() {
+    const groupsCount = document.getElementById('groupsCount');
+    if (groupsCount) {
+        groupsCount.textContent = groups.length;
+    }
+}
+
+// Добавление новой группы
+function addGroup() {
+    if (!isLoggedIn) {
+        showResponseById('messageResponse', '❌ Сначала войдите в систему', 'error');
+        return;
+    }
+    
+    const groupIdInput = document.getElementById('newGroupId');
+    const groupNameInput = document.getElementById('newGroupName');
+    
+    const groupId = groupIdInput.value.trim();
+    const groupName = groupNameInput.value.trim() || `Группа ${groups.length + 1}`;
+    
+    // Проверка ID группы
+    if (!groupId) {
+        alert('⚠️ Введите ID группы');
+        return;
+    }
+    
+    // Проверка формата ID (должен начинаться с -100 для супергрупп или быть числом)
+    if (!groupId.startsWith('-100') && !/^-?\d+$/.test(groupId)) {
+        alert('⚠️ ID группы должен быть числом (например: -1001234567890)');
+        return;
+    }
+    
+    // Проверка на дубликаты
+    if (groups.some(g => g.id === groupId)) {
+        alert('⚠️ Группа с таким ID уже существует');
+        return;
+    }
+    
+    // Добавляем группу
+    const newGroup = {
+        id: groupId,
+        name: groupName,
+        added: new Date().toLocaleDateString(),
+        messagesSent: 0,
+        lastUsed: null
+    };
+    
+    groups.push(newGroup);
+    saveGroups();
+    
+    // Обновляем UI
+    updateGroupSelector();
+    updateGroupsList();
+    updateGroupsCount();
+    
+    // Выбираем новую группу
+    document.getElementById('groupSelector').value = groupId;
+    updateCurrentGroupInfo();
+    
+    // Очищаем поля ввода
+    groupIdInput.value = '';
+    groupNameInput.value = '';
+    
+    // Показываем уведомление
+    showResponseById('messageResponse', `✅ Группа "${groupName}" добавлена!`, 'success');
+    
+    // Тестируем новую группу
+    setTimeout(() => {
+        testGroupConnection(groupId);
+    }, 500);
+}
+
+// Выбор группы
+function selectGroup(groupId) {
+    const selector = document.getElementById('groupSelector');
+    if (selector) {
+        selector.value = groupId;
+        updateCurrentGroupInfo();
+        showResponseById('messageResponse', `✅ Выбрана группа: ${groupId}`, 'success');
+    }
+}
+
+// Редактирование группы
+function editGroup(index) {
+    const group = groups[index];
+    const newName = prompt('Введите новое название группы:', group.name);
+    
+    if (newName && newName.trim() !== '') {
+        groups[index].name = newName.trim();
+        saveGroups();
+        updateGroupSelector();
+        updateGroupsList();
+        updateCurrentGroupInfo();
+        showResponseById('messageResponse', `✅ Группа переименована в "${newName}"`, 'success');
+    }
+}
+
+// Удаление группы
+function removeGroup(index) {
+    if (!confirm(`Удалить группу "${groups[index].name}"?`)) {
+        return;
+    }
+    
+    const removedGroup = groups.splice(index, 1)[0];
+    saveGroups();
+    updateGroupSelector();
+    updateGroupsList();
+    updateGroupsCount();
+    updateCurrentGroupInfo();
+    
+    showResponseById('messageResponse', `✅ Группа "${removedGroup.name}" удалена`, 'success');
+}
+
+// Загрузка групп (обновление списка)
+function loadGroups() {
+    initializeGroups();
+    showResponseById('messageResponse', `✅ Список групп обновлен (${groups.length})`, 'success');
+}
+
+// Тестирование соединения с группой
+async function testGroupConnection(groupId) {
+    if (!isLoggedIn) return;
+    
+    const group = groups.find(g => g.id === groupId);
+    if (!group) return;
+    
+    showResponseById('messageResponse', `🔍 Тестирую соединение с "${group.name}"...`, 'info');
+    
+    try {
+        // Отправляем тестовое сообщение
+        const response = await sendTelegramMessage(groupId, '🟢 Тестовое сообщение от JARVIS\nБот подключен успешно!');
+        
+        if (response.ok) {
+            showResponseById('messageResponse', `✅ Группа "${group.name}" активна!`, 'success');
+            return true;
         } else {
-            errorElement.textContent = `❌ Неверный код! Осталось попыток: ${attemptsLeft}`;
-            errorElement.style.display = "block";
+            showResponseById('messageResponse', `⚠️ Ошибка: ${response.description}`, 'error');
+            return false;
+        }
+    } catch (error) {
+        showResponseById('messageResponse', '❌ Ошибка соединения', 'error');
+        return false;
+    }
+}
+
+// Тест текущей выбранной группы
+function testCurrentGroup() {
+    const selector = document.getElementById('groupSelector');
+    if (selector && selector.value) {
+        testGroupConnection(selector.value);
+    }
+}
+
+// Отправка сообщения в выбранную группу
+async function sendMessage() {
+    if (!isLoggedIn) {
+        showResponseById('messageResponse', '❌ Сначала войдите в систему', 'error');
+        return;
+    }
+    
+    const selector = document.getElementById('groupSelector');
+    const messageText = document.getElementById('messageText').value.trim();
+    
+    if (!selector || !selector.value) {
+        showResponseById('messageResponse', '⚠️ Выберите группу', 'error');
+        return;
+    }
+    
+    if (!messageText) {
+        showResponseById('messageResponse', '⚠️ Введите сообщение', 'error');
+        return;
+    }
+    
+    showResponseById('messageResponse', '📤 Отправляю сообщение...', 'info');
+    
+    try {
+        const groupId = selector.value;
+        const group = groups.find(g => g.id === groupId);
+        
+        const response = await sendTelegramMessage(groupId, messageText);
+        
+        if (response.ok) {
+            // Увеличиваем счетчик сообщений
+            if (group) {
+                group.messagesSent = (group.messagesSent || 0) + 1;
+                group.lastUsed = new Date().toLocaleString();
+                saveGroups();
+                updateGroupsList();
+            }
+            
+            showResponseById('messageResponse', '✅ Сообщение отправлено!', 'success');
+            document.getElementById('messageText').value = ''; // Очищаем поле
+        } else {
+            showResponseById('messageResponse', `❌ Ошибка: ${response.description}`, 'error');
+        }
+    } catch (error) {
+        showResponseById('messageResponse', '❌ Ошибка отправки', 'error');
+    }
+}
+
+// Отправка шутки во все группы
+async function sendJokeToAllGroups() {
+    if (!isLoggedIn) return;
+    
+    if (groups.length === 0) {
+        showResponseById('jokeResponse', '⚠️ Нет сохраненных групп', 'error');
+        return;
+    }
+    
+    const type = document.getElementById('jokeType').value;
+    const jokes = jokesDatabase[type];
+    const joke = jokes[Math.floor(Math.random() * jokes.length)];
+    
+    showResponseById('jokeResponse', `🎭 Отправляю шутку в ${groups.length} групп...`, 'info');
+    
+    let successCount = 0;
+    let errorCount = 0;
+    
+    for (const group of groups) {
+        try {
+            const response = await sendTelegramMessage(group.id, `🎭 Шутка:\n\n${joke}`);
+            if (response.ok) {
+                successCount++;
+                group.messagesSent = (group.messagesSent || 0) + 1;
+                group.lastUsed = new Date().toLocaleString();
+            } else {
+                errorCount++;
+            }
+        } catch (error) {
+            errorCount++;
         }
     }
+    
+    saveGroups();
+    updateGroupsList();
+    
+    showResponseById('jokeResponse', 
+        `✅ Отправлено: ${successCount} успешно, ${errorCount} с ошибкой`, 
+        successCount > 0 ? 'success' : 'error'
+    );
 }
 
-function updateAttemptsDisplay() {
-    const attemptsElement = document.getElementById('attemptsCount');
-    if (attemptsElement) {
-        attemptsElement.textContent = attemptsLeft;
+// Отправка быстрой шутки во все группы
+async function sendQuickJokeToAll() {
+    document.getElementById('jokeType').value = 'random';
+    sendJokeToAllGroups();
+}
+
+// Обновление информации о текущей группе при изменении селектора
+function updateCurrentGroupInfo() {
+    const groupSelector = document.getElementById('groupSelector');
+    const currentGroupInfo = document.getElementById('currentGroupInfo');
+    
+    if (!groupSelector || !currentGroupInfo) return;
+    
+    const selectedGroupId = groupSelector.value;
+    const group = groups.find(g => g.id === selectedGroupId);
+    
+    if (group) {
+        currentGroupInfo.innerHTML = `📢 Выбрана группа: ${group.name} (${group.id})`;
+        currentGroupId = group.id;
+        currentGroupName = group.name;
     }
 }
 
-function disableLogin() {
-    document.getElementById('accessCode').disabled = true;
-    document.querySelector('.login-btn').disabled = true;
-    document.querySelector('.ghost-btn').disabled = true;
+// Экспорт/Импорт групп
+function exportGroups() {
+    const dataStr = JSON.stringify(groups, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    
+    const exportFileDefaultName = `jarvis_groups_${new Date().toISOString().split('T')[0]}.json`;
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+    
+    showResponseById('messageResponse', '✅ Группы экспортированы', 'success');
 }
 
-function enableLogin() {
-    document.getElementById('accessCode').disabled = false;
-    document.querySelector('.login-btn').disabled = false;
-    document.querySelector('.ghost-btn').disabled = false;
+function importGroups() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    
+    input.onchange = function(event) {
+        const file = event.target.files[0];
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            try {
+                const importedGroups = JSON.parse(e.target.result);
+                if (Array.isArray(importedGroups)) {
+                    groups = importedGroups;
+                    saveGroups();
+                    initializeGroups();
+                    showResponseById('messageResponse', `✅ Импортировано ${groups.length} групп`, 'success');
+                } else {
+                    throw new Error('Неверный формат файла');
+                }
+            } catch (error) {
+                alert('❌ Ошибка импорта: ' + error.message);
+            }
+        };
+        
+        reader.readAsText(file);
+    };
+    
+    input.click();
 }
 
+// Инициализация при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("Сайт загружен");
+    updateAttemptsDisplay();
+    
+    // Инициализируем группы только после входа
+    if (isLoggedIn) {
+        initializeGroups();
+    }
+});
+
+// Добавляем обработчики для кнопок экспорта/импорта (можно добавить в HTML кнопки)
+function addExportImportButtons() {
+    const groupsList = document.getElementById('groupsList');
+    if (groupsList && !document.getElementById('exportImportButtons')) {
+        const buttonContainer = document.createElement('div');
+        buttonContainer.id = 'exportImportButtons';
+        buttonContainer.style.display = 'flex';
+        buttonContainer.style.gap = '10px';
+        buttonContainer.style.marginTop = '15px';
+        
+        buttonContainer.innerHTML = `
+            <button class="btn" onclick="exportGroups()" style="flex: 1;">
+                <i class="fas fa-download"></i> Экспорт групп
+            </button>
+            <button class="btn btn-secondary" onclick="importGroups()" style="flex: 1;">
+                <i class="fas fa-upload"></i> Импорт групп
+            </button>
+        `;
+        
+        groupsList.parentNode.appendChild(buttonContainer);
+    }
+}
+
+// Обновляем функцию loginSuccess для инициализации групп
 function loginSuccess() {
     isLoggedIn = true;
     console.log("Успешный вход!");
@@ -81,302 +494,10 @@ function loginSuccess() {
     checkBotStatus();
     showJokeExample();
     
+    // Инициализируем группы
+    initializeGroups();
+    addExportImportButtons();
+    
     // Показываем приветствие
     showResponseById('messageResponse', '✅ Добро пожаловать в систему JARVIS!', 'success');
 }
-
-function phantomAccess() {
-    console.log("Фантомный доступ");
-    
-    // Просто входим
-    loginSuccess();
-    
-    // И отправляем тестовую шутку
-    setTimeout(() => {
-        sendJoke();
-    }, 1000);
-}
-
-// ===== ОСНОВНЫЕ ФУНКЦИИ БОТА =====
-const BOT_TOKEN = '8280726925:AAHP4QQrGZlr2K09CFs0kkxAsCQFKEnuCHM';
-const GROUP_ID = '-1003835999605';
-const API_URL = `https://api.telegram.org/bot${BOT_TOKEN}`;
-
-// База шуток
-const jokesDatabase = {
-    programming: [
-        "Почему программист умер в душе? На бутылке с шампунем было написано: нанести, смыть, повторить.",
-        "Сколько программистов нужно, чтобы вкрутить лампочку? Ни одного, это hardware проблема!",
-    ],
-    dark: [
-        "Почему призрак плохой парковщик? Он всегда проходит сквозь машины!",
-        "Что сказал гроб похоронному агенту? Вы мне по гроб жизни!",
-    ],
-    ai: [
-        "Как говорит Джарвис: 'Я не испытываю эмоций, но если бы испытывал, то смеялся бы над вашей попыткой меня отключить'",
-        "Почему ИИ не смотрит фильмы ужасов? Он боится багов, а не призраков.",
-    ],
-    stark: [
-        "Как говорит Тони Старк: 'Иногда чтобы что-то починить, нужно сначала сломать'. Я применил это к вашему настроению.",
-        "Мой реактор работает на 100% мощности. Ваше чувство юмора - на 30%.",
-    ],
-    random: [
-        "Почему книгу о антигравитации так сложно читать? Тяжело оторваться!",
-        "Что сказал один магнит другому? Ты меня притягиваешь!",
-    ]
-};
-
-const magicBallAnswers = [
-    "Бесспорно", "Предрешено", "Никаких сомнений", "Определённо да", "Можешь быть уверен в этом",
-    "Мне кажется — «да»", "Вероятнее всего", "Хорошие перспективы", "Знаки говорят — «да»", "Да"
-];
-
-let currentMode = 'group';
-let personalChatId = null;
-
-// Проверка статуса бота
-async function checkBotStatus() {
-    const statusText = document.getElementById('statusText');
-    
-    try {
-        const response = await fetch(`${API_URL}/getMe`);
-        const data = await response.json();
-        
-        if (data.ok) {
-            statusText.textContent = `✅ Бот активен: ${data.result.first_name}`;
-            document.querySelector('.status-dot').style.background = '#4CAF50';
-        } else {
-            statusText.textContent = '❌ Бот не отвечает';
-            document.querySelector('.status-dot').style.background = '#f44336';
-        }
-    } catch (error) {
-        statusText.textContent = '⚠️ Ошибка подключения';
-        document.querySelector('.status-dot').style.background = '#ff9800';
-    }
-}
-
-// Переключатель режима
-function setChatMode(mode) {
-    if (!isLoggedIn) return;
-    
-    currentMode = mode;
-    document.querySelectorAll('.mode-option').forEach(option => {
-        option.classList.remove('active');
-    });
-    event.target.closest('.mode-option').classList.add('active');
-    
-    const infoElement = document.querySelector('.current-chat-info');
-    if (mode === 'group') {
-        infoElement.innerHTML = `📢 Отправка в группу: ${GROUP_ID}`;
-    } else {
-        infoElement.innerHTML = `👤 Личный чат`;
-    }
-}
-
-// Отправка сообщений
-async function sendMessage() {
-    if (!isLoggedIn) {
-        showResponseById('messageResponse', '❌ Сначала войдите в систему', 'error');
-        return;
-    }
-    
-    const message = document.getElementById('messageText').value.trim();
-    if (!message) {
-        showResponseById('messageResponse', '⚠️ Введите сообщение', 'error');
-        return;
-    }
-    
-    showResponseById('messageResponse', '📤 Отправляю сообщение...', 'info');
-    
-    try {
-        let chatId;
-        if (currentMode === 'group') {
-            chatId = GROUP_ID;
-        } else {
-            // Для личного чата
-            if (!personalChatId) {
-                const manualId = prompt('Введите ваш Telegram ID:');
-                if (!manualId) return;
-                personalChatId = manualId;
-            }
-            chatId = personalChatId;
-        }
-        
-        const response = await sendTelegramMessage(chatId, message);
-        
-        if (response.ok) {
-            showResponseById('messageResponse', '✅ Сообщение отправлено!', 'success');
-        } else {
-            showResponseById('messageResponse', '❌ Ошибка: ' + response.description, 'error');
-        }
-    } catch (error) {
-        showResponseById('messageResponse', '❌ Ошибка отправки', 'error');
-    }
-}
-
-async function sendTelegramMessage(chatId, text) {
-    const response = await fetch(`${API_URL}/sendMessage`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-            chat_id: chatId,
-            text: text,
-            parse_mode: 'HTML'
-        })
-    });
-    return await response.json();
-}
-
-// Шутки
-function showJokeExample() {
-    const type = document.getElementById('jokeType').value;
-    const jokes = jokesDatabase[type];
-    const randomJoke = jokes[Math.floor(Math.random() * jokes.length)];
-    document.getElementById('jokePreview').textContent = randomJoke;
-}
-
-async function sendJoke() {
-    if (!isLoggedIn) return;
-    
-    const type = document.getElementById('jokeType').value;
-    const jokes = jokesDatabase[type];
-    const joke = jokes[Math.floor(Math.random() * jokes.length)];
-    
-    showResponseById('jokeResponse', '😂 Отправляю шутку...', 'info');
-    
-    try {
-        let chatId;
-        if (currentMode === 'group') {
-            chatId = GROUP_ID;
-        } else {
-            if (!personalChatId) {
-                const manualId = prompt('Введите ваш Telegram ID:');
-                if (!manualId) return;
-                personalChatId = manualId;
-            }
-            chatId = personalChatId;
-        }
-        
-        const response = await sendTelegramMessage(chatId, `🎭 Шутка:\n\n${joke}`);
-        
-        if (response.ok) {
-            showResponseById('jokeResponse', '✅ Шутка отправлена!', 'success');
-        } else {
-            showResponseById('jokeResponse', '❌ Ошибка отправки', 'error');
-        }
-    } catch (error) {
-        showResponseById('jokeResponse', '❌ Ошибка', 'error');
-    }
-}
-
-function sendQuickJoke(type) {
-    document.getElementById('jokeType').value = type;
-    sendJoke();
-}
-
-// Магический шар
-async function askMagicBall() {
-    if (!isLoggedIn) return;
-    
-    const question = document.getElementById('question').value.trim();
-    if (!question) {
-        showResponseById('ballResponse', '❓ Задайте вопрос', 'error');
-        return;
-    }
-    
-    showResponseById('ballResponse', '🔮 Трясу шар...', 'info');
-    
-    setTimeout(async () => {
-        const answer = magicBallAnswers[Math.floor(Math.random() * magicBallAnswers.length)];
-        
-        try {
-            let chatId;
-            if (currentMode === 'group') {
-                chatId = GROUP_ID;
-            } else {
-                if (!personalChatId) {
-                    const manualId = prompt('Введите ваш Telegram ID:');
-                    if (!manualId) return;
-                    personalChatId = manualId;
-                }
-                chatId = personalChatId;
-            }
-            
-            const response = await sendTelegramMessage(chatId, `🔮 Вопрос: ${question}\n\nОтвет: ${answer}`);
-            
-            if (response.ok) {
-                showResponseById('ballResponse', `✅ Ответ отправлен: ${answer}`, 'success');
-            } else {
-                showResponseById('ballResponse', '❌ Ошибка отправки', 'error');
-            }
-        } catch (error) {
-            showResponseById('ballResponse', '❌ Ошибка', 'error');
-        }
-    }, 1500);
-}
-
-// Управление ботом
-async function executeBotCommand() {
-    if (!isLoggedIn) return;
-    
-    const command = document.getElementById('botCommand').value;
-    const responseBox = document.getElementById('commandResponse');
-    
-    showResponse(responseBox, '⚡ Выполняю...', 'info');
-    
-    try {
-        let result;
-        
-        switch(command) {
-            case 'status':
-                result = await checkBotStatus();
-                showResponse(responseBox, '✅ Статус проверен', 'success');
-                break;
-            case 'stats':
-                result = {ok: true, description: `Статистика бота:\nГруппа: ${GROUP_ID}\nБот работает`};
-                showResponse(responseBox, result.description, 'success');
-                break;
-            case 'test':
-                // Тестовое сообщение
-                try {
-                    const response = await sendTelegramMessage(GROUP_ID, '✅ Тестовое сообщение от JARVIS');
-                    if (response.ok) {
-                        showResponse(responseBox, '✅ Тестовое сообщение отправлено', 'success');
-                    }
-                } catch (e) {
-                    showResponse(responseBox, '❌ Ошибка теста', 'error');
-                }
-                break;
-        }
-    } catch (error) {
-        showResponse(responseBox, '❌ Ошибка выполнения', 'error');
-    }
-}
-
-// Вспомогательные функции
-function showResponse(element, message, type) {
-    element.innerHTML = message;
-    element.className = 'response-box show';
-    
-    if (type === 'success') {
-        element.style.borderLeftColor = '#4CAF50';
-    } else if (type === 'error') {
-        element.style.borderLeftColor = '#f44336';
-    } else {
-        element.style.borderLeftColor = '#00bcd4';
-    }
-}
-
-function showResponseById(elementId, message, type) {
-    const element = document.getElementById(elementId);
-    if (element) {
-        showResponse(element, message, type);
-    }
-}
-
-// Добавляем обработчик Enter на поле ввода
-document.getElementById('accessCode').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        checkAccessCode();
-    }
-});

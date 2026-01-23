@@ -8,11 +8,57 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <div class="container">
+    <!-- Экран входа -->
+    <div id="loginScreen" class="login-screen">
+        <div class="login-container">
+            <div class="login-logo">
+                <i class="fas fa-robot"></i>
+                <h1>JARVIS SECURE ACCESS</h1>
+            </div>
+            <div class="login-form">
+                <div class="form-group">
+                    <label for="accessCode">Код доступа</label>
+                    <input type="password" id="accessCode" class="form-control" 
+                           placeholder="Введите код доступа..." 
+                           onkeypress="checkEnter(event)">
+                    <div class="hint">Подсказка: Код состоит из 8 символов</div>
+                </div>
+                <button class="btn btn-login" onclick="checkAccessCode()">
+                    <i class="fas fa-lock"></i> Войти в систему
+                </button>
+                <div class="login-error" id="loginError"></div>
+                
+                <!-- Счетчик попыток -->
+                <div class="attempts-counter" id="attemptsCounter">
+                    Попыток: <span id="attemptsCount">3</span>/3
+                </div>
+                
+                <!-- Фантомный доступ -->
+                <div class="phantom-access">
+                    <button class="btn-phantom" onclick="phantomAccess()">
+                        <i class="fas fa-ghost"></i> Фантомный доступ
+                    </button>
+                    <div class="phantom-info">
+                        Счётчик фантомов: <span id="phantomCount">0</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="login-footer">
+                <p>⚠️ Несанкционированный доступ запрещён</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Основной контент (скрыт до входа) -->
+    <div id="mainContent" class="container" style="display: none;">
         <header>
             <div class="logo">
                 <i class="fas fa-robot"></i>
                 <h1>JARVIS BOT CONTROL</h1>
+                <div class="access-badge" id="accessBadge">
+                    <i class="fas fa-user-shield"></i> Администратор
+                </div>
             </div>
             <p class="subtitle">Панель управления Telegram ботом</p>
             <div class="status">
@@ -33,6 +79,17 @@
             </div>
             <div class="current-chat-info" id="currentChatInfo">
                 📢 Отправка в группу: -1003835999605
+            </div>
+            
+            <!-- Информация о сессии -->
+            <div class="session-info">
+                <div class="session-timer">
+                    <i class="fas fa-clock"></i>
+                    <span id="sessionTimer">30:00</span>
+                </div>
+                <button class="btn-logout" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Выйти
+                </button>
             </div>
         </header>
         
@@ -198,10 +255,33 @@
             </button>
         </div>
         
+        <!-- Секретная панель фантомов -->
+        <div class="card phantom-panel" style="grid-column: 1 / -1; display: none;" id="phantomPanel">
+            <h2><i class="fas fa-ghost"></i> Панель фантомов</h2>
+            <div class="phantom-controls">
+                <div class="phantom-stat">
+                    <h3>Фантомная активность</h3>
+                    <p>Общее количество фантомов: <strong id="totalPhantoms">0</strong></p>
+                    <p>Последний фантом: <span id="lastPhantomTime">никогда</span></p>
+                </div>
+                <div class="phantom-actions">
+                    <button class="btn btn-phantom-action" onclick="simulatePhantomClick()">
+                        <i class="fas fa-hand-point-up"></i> Симулировать нажатие на шар
+                    </button>
+                    <button class="btn btn-phantom-action" onclick="simulatePhantomJoke()">
+                        <i class="fas fa-laugh"></i> Симулировать отправку шутки
+                    </button>
+                    <button class="btn btn-phantom-action" onclick="activateAutoPhantom()">
+                        <i class="fas fa-robot"></i> Авто-фантом (30 сек)
+                    </button>
+                </div>
+            </div>
+        </div>
+        
         <footer>
-            <p>JARVIS Bot Control Panel © 2026 | ID группы: -1003835999605</p>
+            <p>JARVIS Bot Control Panel © 2024 | ID группы: -1003835999605</p>
             <p style="margin-top: 10px; font-size: 0.8rem; color: #666;">
-                <i class="fas fa-exclamation-triangle"></i> Для работы требуется активный бот в Telegram
+                <i class="fas fa-exclamation-triangle"></i> Система защищена от несанкционированного доступа
             </p>
         </footer>
     </div>

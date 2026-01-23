@@ -14,10 +14,25 @@
                 <i class="fas fa-robot"></i>
                 <h1>JARVIS BOT CONTROL</h1>
             </div>
-            <p class="subtitle">Панель управления Telegram ботом с искусственным интеллектом</p>
+            <p class="subtitle">Панель управления Telegram ботом</p>
             <div class="status">
                 <div class="status-dot"></div>
-                <span id="statusText">Бот активен</span>
+                <span id="statusText">Проверка бота...</span>
+            </div>
+            
+            <!-- Переключатель чата -->
+            <div class="chat-mode-selector">
+                <div class="mode-option active" data-mode="group" onclick="setChatMode('group')">
+                    <i class="fas fa-users"></i>
+                    <span>Группа</span>
+                </div>
+                <div class="mode-option" data-mode="personal" onclick="setChatMode('personal')">
+                    <i class="fas fa-user"></i>
+                    <span>Личный чат</span>
+                </div>
+            </div>
+            <div class="current-chat-info" id="currentChatInfo">
+                📢 Отправка в группу: -1003835999605
             </div>
         </header>
         
@@ -27,23 +42,13 @@
                 <h2><i class="fas fa-paper-plane"></i> Отправка сообщений</h2>
                 
                 <div class="form-group">
-                    <label>ID пользователя (оставьте пустым для себя)</label>
-                    <div class="user-id-input">
-                        <input type="text" id="userId" class="form-control" placeholder="Например: 123456789">
-                        <button class="btn" onclick="testUserId()">
-                            <i class="fas fa-check"></i>
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="form-group">
                     <label>Ваше сообщение</label>
                     <textarea id="messageText" class="form-control" 
                               placeholder="Введите сообщение для отправки через бота..."></textarea>
                 </div>
                 
                 <button class="btn" onclick="sendMessage()">
-                    <i class="fas fa-paper-plane"></i> Отправить через бота
+                    <i class="fas fa-paper-plane"></i> Отправить сообщение
                 </button>
                 
                 <div id="messageResponse" class="response-box"></div>
@@ -122,9 +127,7 @@
                     <label>Команды управления</label>
                     <select id="botCommand" class="form-control">
                         <option value="status">Проверить статус</option>
-                        <option value="broadcast">Сделать рассылку</option>
                         <option value="stats">Получить статистику</option>
-                        <option value="restart">Перезапустить бота</option>
                         <option value="test">Тестовое сообщение</option>
                     </select>
                 </div>
@@ -154,14 +157,14 @@
         <div class="card" style="grid-column: 1 / -1;">
             <h2><i class="fas fa-bolt"></i> Быстрые шутки (нажмите для отправки)</h2>
             <div class="quick-actions" style="grid-template-columns: repeat(4, 1fr);">
-                <button class="quick-btn" onclick="sendQuickJoke('tech')">
+                <button class="quick-btn" onclick="sendQuickJoke('programming')">
                     <i class="fas fa-code"></i> Техническая
                 </button>
                 <button class="quick-btn" onclick="sendQuickJoke('ai')">
                     <i class="fas fa-brain"></i> Про ИИ
                 </button>
                 <button class="quick-btn" onclick="sendQuickJoke('stark')">
-                    <i class="fas fa-iron-man"></i> Старковская
+                    <i class="fas fa-robot"></i> Старковская
                 </button>
                 <button class="quick-btn" onclick="sendQuickJoke('dark')">
                     <i class="fas fa-moon"></i> Чёрный юмор
@@ -196,7 +199,7 @@
         </div>
         
         <footer>
-            <p>JARVIS Bot Control Panel © 2026 | Бот Token: 8280726925:AAHP4QQrGZlr2K09CFs0kkxAsCQFKEnuCHM</p>
+            <p>JARVIS Bot Control Panel © 2026 | ID группы: -1003835999605</p>
             <p style="margin-top: 10px; font-size: 0.8rem; color: #666;">
                 <i class="fas fa-exclamation-triangle"></i> Для работы требуется активный бот в Telegram
             </p>

@@ -1,6 +1,6 @@
 // Конфигурация
 const BOT_TOKEN = '8280726925:AAHP4QQrGZlr2K09CFs0kkxAsCQFKEnuCHM';
-const DEFAULT_GROUP_ID = '-1003835999605'; // Твоя группа
+const GROUP_ID = '-1003835999605'; // Твоя группа
 const API_URL = `https://api.telegram.org/bot${BOT_TOKEN}`;
 
 // База данных шуток
@@ -76,61 +76,63 @@ let stats = {
     ballUsed: 0
 };
 
-// Текущий чат (по умолчанию группа)
-let currentChatId = DEFAULT_GROUP_ID;
+// Текущий режим (group или personal)
+let currentMode = 'group';
+let personalChatId = null;
 
 // Инициализация
 document.addEventListener('DOMContentLoaded', function() {
     updateDisplayStats();
     showJokeExample();
-    updateChatDisplay();
+    checkBotStatusOnLoad();
 });
 
-// Обновление отображения текущего чата
-function updateChatDisplay() {
-    const statusElement = document.getElementById('currentChat');
-    if (!statusElement) {
-        // Добавляем элемент статуса
-        const header = document.querySelector('header');
-        const chatStatus = document.createElement('div');
-        chatStatus.className = 'chat-status';
-        chatStatus.id = 'currentChat';
-        chatStatus.innerHTML = `
-            <i class="fas fa-comments"></i>
-            <span>Отправка в: <strong>ГРУППА</strong> (ID: ${currentChatId})</span>
-            <button onclick="switchChatMode()" class="btn-switch">
-                <i class="fas fa-exchange-alt"></i> Переключить
-            </button>
-        `;
-        header.appendChild(chatStatus);
-    } else {
-        statusElement.innerHTML = `
-            <i class="fas fa-comments"></i>
-            <span>Отправка в: <strong>${currentChatId === DEFAULT_GROUP_ID ? 'ГРУППА' : 'ЛИЧНО'}</strong> (ID: ${currentChatId})</span>
-            <button onclick="switchChatMode()" class="btn-switch">
-                <i class="fas fa-exchange-alt"></i> Переключить
-            </button>
-        `;
+// Проверка статуса бота при загрузке
+async function checkBotStatusOnLoad() {
+    const statusText = document.getElementById('statusText');
+    
+    try {
+        const response = await fetch(`${API_URL}/getMe`);
+        const data = await response.json();
+        
+        if (data.ok) {
+            statusText.textContent = `Бот активен: ${data.result.first_name}`;
+            console.log('✅ Бот подключен');
+        } else {
+            statusText.textContent = 'Бот не отвечает';
+            document.querySelector('.status-dot').style.background = '#f44336';
+            document.querySelector('.status').style.borderColor = 'rgba(244, 67, 54, 0.3)';
+        }
+    } catch (error) {
+        statusText.textContent = 'Ошибка подключения';
+        document.querySelector('.status-dot').style.background = '#ff9800';
+        document.querySelector('.status').style.borderColor = 'rgba(255, 152, 0, 0.3)';
     }
 }
 
-// Переключение между группой и личным чатом
-function switchChatMode() {
-    if (currentChatId === DEFAULT_GROUP_ID) {
-        // Переключаем на личный чат
-        getMyChatId().then(chatId => {
-            if (chatId) {
-                currentChatId = chatId;
-                updateChatDisplay();
-                showResponseById('messageResponse', '✅ Переключено на личный чат', 'success');
-            }
-        });
+// Установка режима чата
+function setChatMode(mode) {
+    currentMode = mode;
+    
+    // Обновляем активный класс у кнопок
+    document.querySelectorAll('.mode-option').forEach(option => {
+        option.classList.remove('active');
+    });
+    document.querySelector(`.mode-option[data-mode="${mode}"]`).classList.add('active');
+    
+    // Обновляем информацию
+    const infoElement = document.getElementById('currentChatInfo');
+    if (mode === 'group') {
+        infoElement.innerHTML = `📢 Отправка в группу: ${GROUP_ID}`;
     } else {
-        // Переключаем на группу
-        currentChatId = DEFAULT_GROUP_ID;
-        updateChatDisplay();
-        showResponseById('messageResponse', '✅ Переключено на группу', 'success');
+        if (personalChatId) {
+            infoElement.innerHTML = `👤 Отправка в личный чат: ${personalChatId}`;
+        } else {
+            infoElement.innerHTML = `👤 Отправка в личный чат (ID будет запрошен при отправке)`;
+        }
     }
+    
+    showResponseById('messageResponse', `✅ Режим изменён: ${mode === 'group' ? 'Группа' : 'Личный чат'}`, 'success');
 }
 
 // ===== ОТПРАВКА СООБЩЕНИЙ =====
@@ -143,10 +145,27 @@ async function sendMessage() {
         return;
     }
     
-    showResponse(responseBox, `Отправляю сообщение в ${currentChatId === DEFAULT_GROUP_ID ? 'группу' : 'личный чат'}...`, 'info');
+    showResponse(responseBox, 'Отправляю сообщение...', 'info');
     
     try {
-        const response = await sendTelegramMessage(currentChatId, message);
+        let chatId;
+        
+        if (currentMode === 'group') {
+            chatId = GROUP_ID;
+        } else {
+            // Для личного чата получаем или запрашиваем ID
+            if (!personalChatId) {
+                personalChatId = await getMyChatId();
+                if (!personalChatId) {
+                    showResponse(responseBox, 'Не удалось определить ID личного чата', 'error');
+                    return;
+                }
+                setChatMode('personal'); // Обновляем отображение
+            }
+            chatId = personalChatId;
+        }
+        
+        const response = await sendTelegramMessage(chatId, message);
         
         if (response.ok) {
             showResponse(responseBox, '✅ Сообщение успешно отправлено!', 'success');
@@ -175,10 +194,26 @@ async function sendJoke() {
     const joke = jokes[Math.floor(Math.random() * jokes.length)];
     const responseBox = document.getElementById('jokeResponse');
     
-    showResponse(responseBox, `Отправляю шутку в ${currentChatId === DEFAULT_GROUP_ID ? 'группу' : 'личный чат'}...`, 'info');
+    showResponse(responseBox, 'Отправляю шутку...', 'info');
     
     try {
-        const response = await sendTelegramMessage(currentChatId, `🎭 Шутка (${type}):\n\n${joke}`);
+        let chatId;
+        
+        if (currentMode === 'group') {
+            chatId = GROUP_ID;
+        } else {
+            if (!personalChatId) {
+                personalChatId = await getMyChatId();
+                if (!personalChatId) {
+                    showResponse(responseBox, 'Не удалось определить ID личного чата', 'error');
+                    return;
+                }
+                setChatMode('personal');
+            }
+            chatId = personalChatId;
+        }
+        
+        const response = await sendTelegramMessage(chatId, `🎭 Шутка (${type}):\n\n${joke}`);
         
         if (response.ok) {
             showResponse(responseBox, '✅ Шутка успешно отправлена!', 'success');
@@ -230,14 +265,30 @@ async function askMagicBall() {
         return;
     }
     
-    showResponse(responseBox, `🔮 Трясу шар... Отправлю ответ в ${currentChatId === DEFAULT_GROUP_ID ? 'группу' : 'личный чат'}`, 'info');
+    showResponse(responseBox, '🔮 Трясу шар...', 'info');
     
     // Анимация загрузки
     setTimeout(async () => {
         const answer = magicBallAnswers[Math.floor(Math.random() * magicBallAnswers.length)];
         
         try {
-            const response = await sendTelegramMessage(currentChatId, 
+            let chatId;
+            
+            if (currentMode === 'group') {
+                chatId = GROUP_ID;
+            } else {
+                if (!personalChatId) {
+                    personalChatId = await getMyChatId();
+                    if (!personalChatId) {
+                        showResponse(responseBox, 'Не удалось определить ID личного чата', 'error');
+                        return;
+                    }
+                    setChatMode('personal');
+                }
+                chatId = personalChatId;
+            }
+            
+            const response = await sendTelegramMessage(chatId, 
                 `🔮 Вопрос: ${question}\n\nОтвет шара: ${answer}`);
             
             if (response.ok) {
@@ -270,20 +321,8 @@ async function executeBotCommand() {
             case 'status':
                 result = await checkBotStatus();
                 break;
-            case 'broadcast':
-                // Рассылка только в группу!
-                const message = prompt('Введите сообщение для рассылки в группу:');
-                if (message) {
-                    result = await broadcastToGroup(message);
-                } else {
-                    result = { ok: false, description: 'Сообщение не введено' };
-                }
-                break;
             case 'stats':
                 result = await getBotStatistics();
-                break;
-            case 'restart':
-                result = { ok: true, description: 'Бот перезапущен (имитация)' };
                 break;
             case 'test':
                 result = await sendTestMessage();
@@ -308,9 +347,8 @@ function getBotInfo() {
 🤖 Информация о боте:
 ────────────────────
 Токен: ${BOT_TOKEN.substring(0, 10)}...
-ID группы: ${DEFAULT_GROUP_ID}
-Имя: JARVIS Bot
-Режим: ${currentChatId === DEFAULT_GROUP_ID ? 'ГРУППА' : 'ЛИЧНЫЙ ЧАТ'}
+ID группы: ${GROUP_ID}
+Режим: ${currentMode === 'group' ? 'ГРУППА' : 'ЛИЧНЫЙ ЧАТ'}
 ────────────────────
 Функции:
 • Отправка в группу/личные
@@ -362,15 +400,20 @@ async function getMyChatId() {
         const data = await response.json();
         
         if (data.ok && data.result.length > 0) {
-            return data.result[0].message.chat.id;
+            // Ищем сообщение от пользователя (не от бота)
+            for (const update of data.result) {
+                if (update.message && update.message.from && !update.message.from.is_bot) {
+                    return update.message.chat.id;
+                }
+            }
         }
     } catch (error) {
         console.error('Ошибка получения chat_id:', error);
     }
     
     // Если не удалось, предлагаем ввести вручную
-    const manualId = prompt('Введите ваш личный Telegram ID (или оставьте пустым для отправки в группу):');
-    return manualId || DEFAULT_GROUP_ID;
+    const manualId = prompt('Введите ваш личный Telegram ID (или нажмите Отмена для отправки в группу):');
+    return manualId;
 }
 
 async function checkBotStatus() {
@@ -397,37 +440,13 @@ async function checkBotStatus() {
     }
 }
 
-async function broadcastToGroup(message) {
-    try {
-        const response = await sendTelegramMessage(DEFAULT_GROUP_ID, 
-            `📢 РАССЫЛКА:\n\n${message}`);
-        
-        if (response.ok) {
-            return {
-                ok: true,
-                description: `Рассылка в группу выполнена!`
-            };
-        } else {
-            return {
-                ok: false,
-                description: 'Ошибка рассылки: ' + response.description
-            };
-        }
-    } catch (error) {
-        return {
-            ok: false,
-            description: 'Ошибка: ' + error.message
-        };
-    }
-}
-
 async function getBotStatistics() {
     // Имитация статистики
     return new Promise(resolve => {
         setTimeout(() => {
             resolve({
                 ok: true,
-                description: `Статистика бота:\n👥 Пользователей: ${stats.totalUsers}\n😂 Шуток: ${stats.totalJokes}\n🔮 Ответов шара: ${stats.totalBalls}\n💬 Сообщений: ${stats.totalMessages}\n🏠 Группа: ${DEFAULT_GROUP_ID}`
+                description: `Статистика бота:\n👥 Пользователей: ${stats.totalUsers}\n😂 Шуток: ${stats.totalJokes}\n🔮 Ответов шара: ${stats.totalBalls}\n💬 Сообщений: ${stats.totalMessages}\n🏠 Группа: ${GROUP_ID}`
             });
         }, 1000);
     });
@@ -435,13 +454,34 @@ async function getBotStatistics() {
 
 async function sendTestMessage() {
     try {
-        const response = await sendTelegramMessage(currentChatId, 
+        let chatId;
+        let targetName;
+        
+        if (currentMode === 'group') {
+            chatId = GROUP_ID;
+            targetName = 'группу';
+        } else {
+            if (!personalChatId) {
+                personalChatId = await getMyChatId();
+                if (!personalChatId) {
+                    return {
+                        ok: false,
+                        description: 'Не удалось определить ID личного чата'
+                    };
+                }
+                setChatMode('personal');
+            }
+            chatId = personalChatId;
+            targetName = 'личный чат';
+        }
+        
+        const response = await sendTelegramMessage(chatId, 
             '✅ Тестовое сообщение от панели управления JARVIS\n\nБот работает корректно!');
         
         if (response.ok) {
             return {
                 ok: true,
-                description: `Тестовое сообщение отправлено в ${currentChatId === DEFAULT_GROUP_ID ? 'группу' : 'личный чат'}`
+                description: `Тестовое сообщение отправлено в ${targetName}`
             };
         } else {
             return {
@@ -511,47 +551,10 @@ function showResponseById(elementId, message, type) {
     }
 }
 
-// Проверяем статус бота при загрузке
-window.onload = async function() {
-    const statusText = document.getElementById('statusText');
-    
-    try {
-        const response = await fetch(`${API_URL}/getMe`);
-        const data = await response.json();
-        
-        if (data.ok) {
-            statusText.textContent = `Бот активен: ${data.result.first_name}`;
-            
-            // Пробуем отправить тестовое сообщение в группу
-            setTimeout(async () => {
-                try {
-                    const testResponse = await sendTelegramMessage(DEFAULT_GROUP_ID, 
-                        '🤖 JARVIS подключен к группе через веб-панель!');
-                    
-                    if (!testResponse.ok) {
-                        console.warn('Не удалось отправить в группу:', testResponse.description);
-                    }
-                } catch (e) {
-                    console.warn('Тест группы не прошел:', e.message);
-                }
-            }, 2000);
-            
-        } else {
-            statusText.textContent = 'Бот не отвечает';
-            document.querySelector('.status-dot').style.background = '#f44336';
-            document.querySelector('.status').style.borderColor = 'rgba(244, 67, 54, 0.3)';
-        }
-    } catch (error) {
-        statusText.textContent = 'Ошибка подключения';
-        document.querySelector('.status-dot').style.background = '#ff9800';
-        document.querySelector('.status').style.borderColor = 'rgba(255, 152, 0, 0.3)';
-    }
-};
-
 // Тест группы (для консоли)
 window.testGroup = async function() {
     console.log('Тестирую отправку в группу...');
-    const response = await sendTelegramMessage(DEFAULT_GROUP_ID, '🎯 Тест отправки из консоли!');
+    const response = await sendTelegramMessage(GROUP_ID, '🎯 Тест отправки из консоли!');
     console.log('Результат:', response);
     alert(response.ok ? '✅ Успешно!' : '❌ Ошибка: ' + response.description);
 };

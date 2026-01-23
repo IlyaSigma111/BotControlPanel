@@ -1,700 +1,557 @@
-// Главный объект приложения
-const JarvisApp = {
-    db: null,
-    auth: null,
-    user: null,
-    jokes: [],
-    answers: [],
-    users: [],
-    logs: [],
-    charts: {},
-    
-    // Инициализация
-    async init() {
-        try {
-            // Аутентификация анонимно
-            const userCredential = await firebase.signInAnonymously(firebase.auth);
-            this.user = userCredential.user;
-            this.db = firebase.database;
-            this.auth = firebase.auth;
-            
-            this.updateStatus('CONNECTED', '#4CAF50');
-            this.log('Firebase: Успешная аутентификация');
-            
-            // Загрузка данных
-            await this.loadAllData();
-            
-            // Начальное сообщение
-            this.showAIResponse('Система Джарвис активирована. База данных подключена.');
-            
-        } catch (error) {
-            console.error('Ошибка инициализации:', error);
-            this.updateStatus('ERROR', '#f44336');
-            this.log(`Ошибка: ${error.message}`);
-        }
-    },
-    
-    // Обновление статуса
-    updateStatus(status, color) {
-        const dot = document.getElementById('statusDot');
-        const text = document.getElementById('statusText');
-        const dbStatus = document.getElementById('dbStatus');
-        
-        dot.style.background = color;
-        text.textContent = status;
-        text.style.color = color;
-        text.style.textShadow = `0 0 10px ${color}`;
-        dbStatus.textContent = `Firebase: ${status}`;
-        dbStatus.style.color = color;
-    },
-    
-    // Логирование
-    log(message) {
-        const logsDiv = document.getElementById('firebaseLogs');
-        const timestamp = new Date().toLocaleTimeString();
-        const logEntry = document.createElement('div');
-        logEntry.className = 'log-entry';
-        logEntry.innerHTML = `
-            <span class="timestamp">[${timestamp}]</span>
-            <span class="log-message">${message}</span>
+// Конфигурация
+const BOT_TOKEN = '8280726925:AAHP4QQrGZlr2K09CFs0kkxAsCQFKEnuCHM';
+const DEFAULT_GROUP_ID = '-1003835999605'; // Твоя группа
+const API_URL = `https://api.telegram.org/bot${BOT_TOKEN}`;
+
+// База данных шуток
+const jokesDatabase = {
+    programming: [
+        "Почему программист умер в душе? На бутылке с шампунем было написано: нанести, смыть, повторить.",
+        "Сколько программистов нужно, чтобы вкрутить лампочку? Ни одного, это hardware проблема!",
+        "Почему Python-разработчик отказался играть в карты? Боялся индентации!",
+        "Разговор двух функций: 'Ты почему такая медленная?' 'Я рекурсивная...'",
+        "Почему JavaScript разработчик не мог починить машину? Он искал проблему в консоли!"
+    ],
+    dark: [
+        "Почему призрак плохой парковщик? Он всегда проходит сквозь машины!",
+        "Что сказал гроб похоронному агенту? Вы мне по гроб жизни!",
+        "Почему скелет не дрался? У него не было кишок!",
+        "Что говорит зомби на свидании? Мозги... извини, хотел сказать цветы!",
+        "Почему смерть любит шахматы? Она всегда делает последний ход!"
+    ],
+    ai: [
+        "Как говорит Джарвис: 'Я не испытываю эмоций, но если бы испытывал, то смеялся бы над вашей попыткой меня отключить'",
+        "Почему ИИ не смотрит фильмы ужасов? Он боится багов, а не призраков.",
+        "ИИ проанализировал человеческий юмор и выдал: 01001000 01000001 01001000 01000001",
+        "Мой алгоритм предсказывает, что эта шутка заставит вас улыбнуться с вероятностью 87%",
+        "Зачем ИИ чувство юмора? Чтобы понимать, почему люди смеются над его ошибками."
+    ],
+    stark: [
+        "Как говорит Тони Старк: 'Иногда чтобы что-то починить, нужно сначала сломать'. Я применил это к вашему настроению.",
+        "Мой реактор работает на 100% мощности. Ваше чувство юмора - на 30%.",
+        "Джарвис, активируй протокол 'Сарказм'. Протокол активирован, сэр.",
+        "У меня есть броня из сарказма и оружие из иронии. Вы готовы?",
+        "Я не герой. Я - гениальный миллиардер, плейбой, филантроп с искусственным интеллектом."
+    ],
+    random: [
+        "Почему книгу о антигравитации так сложно читать? Тяжело оторваться!",
+        "Что сказал один магнит другому? Ты меня притягиваешь!",
+        "Почему кошка не смогла скачать фильм? У нее было мало интернет-котов!",
+        "Что говорит математик, когда ему холодно? Производная!",
+        "Почему велосипед не может стоять сам? Он двухколесный!"
+    ]
+};
+
+// База ответов магического шара
+const magicBallAnswers = [
+    "Бесспорно",
+    "Предрешено",
+    "Никаких сомнений",
+    "Определённо да",
+    "Можешь быть уверен в этом",
+    "Мне кажется — «да»",
+    "Вероятнее всего",
+    "Хорошие перспективы",
+    "Знаки говорят — «да»",
+    "Да",
+    "Пока не ясно, попробуй снова",
+    "Спроси позже",
+    "Лучше не рассказывать",
+    "Сейчас нельзя предсказать",
+    "Сконцентрируйся и спроси опять",
+    "Даже не думай",
+    "Мой ответ — «нет»",
+    "По моим данным — «нет»",
+    "Перспективы не очень хорошие",
+    "Весьма сомнительно"
+];
+
+// Статистика
+let stats = {
+    totalUsers: 0,
+    totalJokes: 0,
+    totalBalls: 0,
+    totalMessages: 0,
+    ballAnswers: magicBallAnswers.length,
+    ballUsed: 0
+};
+
+// Текущий чат (по умолчанию группа)
+let currentChatId = DEFAULT_GROUP_ID;
+
+// Инициализация
+document.addEventListener('DOMContentLoaded', function() {
+    updateDisplayStats();
+    showJokeExample();
+    updateChatDisplay();
+});
+
+// Обновление отображения текущего чата
+function updateChatDisplay() {
+    const statusElement = document.getElementById('currentChat');
+    if (!statusElement) {
+        // Добавляем элемент статуса
+        const header = document.querySelector('header');
+        const chatStatus = document.createElement('div');
+        chatStatus.className = 'chat-status';
+        chatStatus.id = 'currentChat';
+        chatStatus.innerHTML = `
+            <i class="fas fa-comments"></i>
+            <span>Отправка в: <strong>ГРУППА</strong> (ID: ${currentChatId})</span>
+            <button onclick="switchChatMode()" class="btn-switch">
+                <i class="fas fa-exchange-alt"></i> Переключить
+            </button>
         `;
-        logsDiv.appendChild(logEntry);
-        logsDiv.scrollTop = logsDiv.scrollHeight;
-        
-        // Сохраняем лог в Firebase
-        this.saveLog(message);
-    },
-    
-    // Сохранение лога в Firebase
-    async saveLog(message) {
-        try {
-            const logRef = firebase.ref(this.db, 'logs');
-            const newLogRef = firebase.push(logRef);
-            await firebase.set(newLogRef, {
-                message: message,
-                timestamp: Date.now(),
-                user: this.user?.uid || 'anonymous'
-            });
-        } catch (error) {
-            console.error('Ошибка сохранения лога:', error);
-        }
-    },
-    
-    // Загрузка всех данных
-    async loadAllData() {
-        try {
-            this.log('Загрузка данных из Firebase...');
-            
-            // Загрузка шуток
-            const jokesRef = firebase.ref(this.db, 'jokes');
-            firebase.onValue(jokesRef, (snapshot) => {
-                this.jokes = snapshot.val() || [];
-                this.updateJokesUI();
-                this.updateCounter('jokesCount', this.jokes.length);
-                this.updateCounter('dbJokes', this.jokes.length);
-                this.updateCounter('totalJokes', this.jokes.length);
-            });
-            
-            // Загрузка ответов
-            const answersRef = firebase.ref(this.db, 'answers');
-            firebase.onValue(answersRef, (snapshot) => {
-                this.answers = snapshot.val() || [];
-                this.updateAnswersUI();
-                this.updateCounter('answersCount', this.answers.length);
-                this.updateCounter('dbAnswers', this.answers.length);
-                this.updateCounter('totalAnswers', this.answers.length);
-            });
-            
-            // Загрузка пользователей
-            const usersRef = firebase.ref(this.db, 'users');
-            firebase.onValue(usersRef, (snapshot) => {
-                this.users = snapshot.val() || [];
-                this.updateUsersUI();
-                this.updateCounter('usersCount', this.users.length);
-                this.updateCounter('dbUsers', this.users.length);
-                this.updateCounter('activeUsers', this.users.length);
-            });
-            
-            // Загрузка логов
-            const logsRef = firebase.ref(this.db, 'logs');
-            firebase.onValue(logsRef, (snapshot) => {
-                this.logs = snapshot.val() || [];
-                this.updateCounter('dbLogs', this.logs.length);
-            });
-            
-            this.log('Данные успешно загружены');
-            
-        } catch (error) {
-            console.error('Ошибка загрузки данных:', error);
-            this.log(`Ошибка загрузки: ${error.message}`);
-        }
-    },
-    
-    // Обновление счетчиков
-    updateCounter(elementId, count) {
-        const element = document.getElementById(elementId);
-        if (element) {
-            element.textContent = count;
-        }
-    },
-    
-    // Обновление интерфейса шуток
-    updateJokesUI() {
-        const container = document.getElementById('jokesContainer');
-        if (!container) return;
-        
-        container.innerHTML = '';
-        
-        if (this.jokes.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-laugh"></i>
-                    <p>Нет шуток в базе данных</p>
-                    <button onclick="showAddJokeModal()">Добавить первую шутку</button>
-                </div>
-            `;
-            return;
-        }
-        
-        // Преобразуем объект в массив если нужно
-        const jokesArray = Array.isArray(this.jokes) ? this.jokes : Object.values(this.jokes);
-        
-        jokesArray.forEach((joke, index) => {
-            const jokeElement = document.createElement('div');
-            jokeElement.className = 'joke-item';
-            jokeElement.innerHTML = `
-                <div class="joke-text">
-                    <span class="joke-category">${joke.category || 'Без категории'}</span>
-                    <p>${joke.text || ''}</p>
-                </div>
-                <div class="joke-actions">
-                    <button onclick="JarvisApp.sendJokeToTelegram('${index}')">
-                        <i class="fas fa-paper-plane"></i>
-                    </button>
-                    <button onclick="JarvisApp.deleteJoke('${index}')" class="btn-danger">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            `;
-            container.appendChild(jokeElement);
+        header.appendChild(chatStatus);
+    } else {
+        statusElement.innerHTML = `
+            <i class="fas fa-comments"></i>
+            <span>Отправка в: <strong>${currentChatId === DEFAULT_GROUP_ID ? 'ГРУППА' : 'ЛИЧНО'}</strong> (ID: ${currentChatId})</span>
+            <button onclick="switchChatMode()" class="btn-switch">
+                <i class="fas fa-exchange-alt"></i> Переключить
+            </button>
+        `;
+    }
+}
+
+// Переключение между группой и личным чатом
+function switchChatMode() {
+    if (currentChatId === DEFAULT_GROUP_ID) {
+        // Переключаем на личный чат
+        getMyChatId().then(chatId => {
+            if (chatId) {
+                currentChatId = chatId;
+                updateChatDisplay();
+                showResponseById('messageResponse', '✅ Переключено на личный чат', 'success');
+            }
         });
-    },
+    } else {
+        // Переключаем на группу
+        currentChatId = DEFAULT_GROUP_ID;
+        updateChatDisplay();
+        showResponseById('messageResponse', '✅ Переключено на группу', 'success');
+    }
+}
+
+// ===== ОТПРАВКА СООБЩЕНИЙ =====
+async function sendMessage() {
+    const message = document.getElementById('messageText').value.trim();
+    const responseBox = document.getElementById('messageResponse');
     
-    // Обновление интерфейса ответов
-    updateAnswersUI() {
-        const container = document.getElementById('answersList');
-        if (!container) return;
-        
-        container.innerHTML = '';
-        
-        const answersArray = Array.isArray(this.answers) ? this.answers : Object.values(this.answers);
-        
-        answersArray.forEach((answer, index) => {
-            const answerElement = document.createElement('div');
-            answerElement.className = 'answer-item';
-            answerElement.innerHTML = `
-                <span>${answer.text || answer}</span>
-                <button onclick="JarvisApp.deleteAnswer('${index}')">
-                    <i class="fas fa-times"></i>
-                </button>
-            `;
-            container.appendChild(answerElement);
-        });
-    },
+    if (!message) {
+        showResponse(responseBox, 'Введите сообщение для отправки', 'error');
+        return;
+    }
     
-    // Обновление интерфейса пользователей
-    updateUsersUI() {
-        const container = document.getElementById('usersTable');
-        if (!container) return;
-        
-        container.innerHTML = '';
-        
-        const usersArray = Array.isArray(this.users) ? this.users : Object.values(this.users);
-        
-        usersArray.forEach((user, index) => {
-            const userElement = document.createElement('tr');
-            userElement.innerHTML = `
-                <td>${user.id || index}</td>
-                <td>${user.name || 'Без имени'}</td>
-                <td>${user.username || 'Нет тега'}</td>
-                <td>${user.date || new Date().toLocaleDateString()}</td>
-                <td>${user.jokesReceived || 0}</td>
-                <td>${user.predictions || 0}</td>
-                <td>
-                    <button onclick="JarvisApp.messageUser('${user.id || index}')">
-                        <i class="fas fa-envelope"></i>
-                    </button>
-                </td>
-            `;
-            container.appendChild(userElement);
-        });
-    },
+    showResponse(responseBox, `Отправляю сообщение в ${currentChatId === DEFAULT_GROUP_ID ? 'группу' : 'личный чат'}...`, 'info');
     
-    // Добавление шутки в Firebase
-    async addJoke(text, category = 'tech') {
-        try {
-            const jokeRef = firebase.ref(this.db, 'jokes');
-            const newJokeRef = firebase.push(jokeRef);
-            
-            await firebase.set(newJokeRef, {
-                text: text,
-                category: category,
-                createdAt: Date.now(),
-                addedBy: this.user?.uid || 'system'
-            });
-            
-            this.log(`Добавлена новая шутка: "${text.substring(0, 50)}..."`);
-            this.showAIResponse('Шутка добавлена в базу данных');
-            return true;
-            
-        } catch (error) {
-            console.error('Ошибка добавления шутки:', error);
-            this.log(`Ошибка: ${error.message}`);
-            return false;
-        }
-    },
-    
-    // Удаление шутки
-    async deleteJoke(index) {
-        try {
-            const jokeRef = firebase.ref(this.db, `jokes/${index}`);
-            await firebase.remove(jokeRef);
-            this.log('Шутка удалена');
-        } catch (error) {
-            console.error('Ошибка удаления шутки:', error);
-        }
-    },
-    
-    // Добавление ответа
-    async addAnswer(text) {
-        try {
-            const answersRef = firebase.ref(this.db, 'answers');
-            const newAnswerRef = firebase.push(answersRef);
-            
-            await firebase.set(newAnswerRef, {
-                text: text,
-                createdAt: Date.now()
-            });
-            
-            this.log(`Добавлен новый ответ: "${text}"`);
-            return true;
-            
-        } catch (error) {
-            console.error('Ошибка добавления ответа:', error);
-            return false;
-        }
-    },
-    
-    // Удаление ответа
-    async deleteAnswer(index) {
-        try {
-            const answerRef = firebase.ref(this.db, `answers/${index}`);
-            await firebase.remove(answerRef);
-            this.log('Ответ удален');
-        } catch (error) {
-            console.error('Ошибка удаления ответа:', error);
-        }
-    },
-    
-    // Тряска шара
-    async shakeBall() {
-        const ball = document.getElementById('magicBall');
-        const ballText = document.getElementById('ballText');
+    try {
+        const response = await sendTelegramMessage(currentChatId, message);
         
-        // Анимация
-        ball.style.animation = 'shake 0.5s';
-        
-        // Получаем случайный ответ
-        const answersArray = Array.isArray(this.answers) ? this.answers : Object.values(this.answers);
-        if (answersArray.length > 0) {
-            const randomIndex = Math.floor(Math.random() * answersArray.length);
-            const answer = answersArray[randomIndex];
-            const answerText = answer.text || answer;
-            
-            setTimeout(() => {
-                ball.style.animation = '';
-                ballText.textContent = answerText;
-                
-                // Сохраняем в историю
-                this.savePrediction(answerText);
-                
-            }, 500);
+        if (response.ok) {
+            showResponse(responseBox, '✅ Сообщение успешно отправлено!', 'success');
+            stats.totalMessages++;
+            updateDisplayStats();
         } else {
-            setTimeout(() => {
-                ball.style.animation = '';
-                ballText.textContent = 'Добавьте ответы';
-            }, 500);
+            showResponse(responseBox, '❌ Ошибка отправки: ' + response.description, 'error');
         }
-    },
+    } catch (error) {
+        showResponse(responseBox, '❌ Ошибка: ' + error.message, 'error');
+    }
+}
+
+// ===== ОТПРАВКА ШУТОК =====
+function showJokeExample() {
+    const type = document.getElementById('jokeType').value;
+    const jokes = jokesDatabase[type];
+    const randomJoke = jokes[Math.floor(Math.random() * jokes.length)];
     
-    // Сохранение предсказания в историю
-    async savePrediction(answer) {
+    document.getElementById('jokePreview').textContent = randomJoke;
+}
+
+async function sendJoke() {
+    const type = document.getElementById('jokeType').value;
+    const jokes = jokesDatabase[type];
+    const joke = jokes[Math.floor(Math.random() * jokes.length)];
+    const responseBox = document.getElementById('jokeResponse');
+    
+    showResponse(responseBox, `Отправляю шутку в ${currentChatId === DEFAULT_GROUP_ID ? 'группу' : 'личный чат'}...`, 'info');
+    
+    try {
+        const response = await sendTelegramMessage(currentChatId, `🎭 Шутка (${type}):\n\n${joke}`);
+        
+        if (response.ok) {
+            showResponse(responseBox, '✅ Шутка успешно отправлена!', 'success');
+            stats.totalJokes++;
+            updateDisplayStats();
+        } else {
+            showResponse(responseBox, '❌ Ошибка отправки: ' + response.description, 'error');
+        }
+    } catch (error) {
+        showResponse(responseBox, '❌ Ошибка: ' + error.message, 'error');
+    }
+}
+
+function sendQuickJoke(type) {
+    document.getElementById('jokeType').value = type;
+    sendJoke();
+}
+
+function addJoke() {
+    const responseBox = document.getElementById('jokeResponse');
+    const type = document.getElementById('jokeType').value;
+    const joke = prompt(`Введите новую шутку для категории "${type}":`);
+    
+    if (joke && joke.trim()) {
+        jokesDatabase[type].push(joke.trim());
+        showResponse(responseBox, '✅ Шутка добавлена в базу!', 'success');
+        showJokeExample();
+    }
+}
+
+function getJokeStats() {
+    const responseBox = document.getElementById('jokeResponse');
+    let statsText = '📊 Статистика шуток:\n\n';
+    
+    for (const [type, jokes] of Object.entries(jokesDatabase)) {
+        statsText += `${type}: ${jokes.length} шуток\n`;
+    }
+    
+    showResponse(responseBox, statsText, 'info');
+}
+
+// ===== МАГИЧЕСКИЙ ШАР =====
+async function askMagicBall() {
+    const question = document.getElementById('question').value.trim();
+    const responseBox = document.getElementById('ballResponse');
+    
+    if (!question) {
+        showResponse(responseBox, 'Задайте вопрос для магического шара', 'error');
+        return;
+    }
+    
+    showResponse(responseBox, `🔮 Трясу шар... Отправлю ответ в ${currentChatId === DEFAULT_GROUP_ID ? 'группу' : 'личный чат'}`, 'info');
+    
+    // Анимация загрузки
+    setTimeout(async () => {
+        const answer = magicBallAnswers[Math.floor(Math.random() * magicBallAnswers.length)];
+        
         try {
-            const predictionsRef = firebase.ref(this.db, 'predictions');
-            const newPredictionRef = firebase.push(predictionsRef);
+            const response = await sendTelegramMessage(currentChatId, 
+                `🔮 Вопрос: ${question}\n\nОтвет шара: ${answer}`);
             
-            await firebase.set(newPredictionRef, {
-                answer: answer,
-                timestamp: Date.now(),
-                user: this.user?.uid
-            });
-            
+            if (response.ok) {
+                showResponse(responseBox, `✅ Ответ отправлен: ${answer}`, 'success');
+                stats.totalBalls++;
+                stats.ballUsed++;
+                updateDisplayStats();
+            } else {
+                showResponse(responseBox, '❌ Ошибка отправки: ' + response.description, 'error');
+            }
         } catch (error) {
-            console.error('Ошибка сохранения предсказания:', error);
+            showResponse(responseBox, '❌ Ошибка: ' + error.message, 'error');
         }
-    },
+    }, 1500);
+}
+
+// ===== УПРАВЛЕНИЕ БОТОМ =====
+async function executeBotCommand() {
+    const command = document.getElementById('botCommand').value;
+    const responseBox = document.getElementById('commandResponse');
+    const loading = document.getElementById('botLoading');
     
-    // Отправка шутки в Telegram
-    async sendJokeToTelegram(index) {
-        // Здесь будет интеграция с Telegram API
-        this.showAIResponse('Отправка шутки в Telegram... (интеграция в разработке)');
-        this.log(`Шутка отправлена в Telegram [ID: ${index}]`);
-    },
+    loading.classList.add('active');
+    showResponse(responseBox, 'Выполняю команду...', 'info');
     
-    // Показать ответ AI
-    showAIResponse(message) {
-        const aiResponse = document.getElementById('aiResponse');
-        if (aiResponse) {
-            aiResponse.textContent = message;
-            
-            // Анимация
-            aiResponse.style.animation = 'fadeIn 0.5s';
-            setTimeout(() => {
-                aiResponse.style.animation = '';
-            }, 500);
+    try {
+        let result;
+        
+        switch(command) {
+            case 'status':
+                result = await checkBotStatus();
+                break;
+            case 'broadcast':
+                // Рассылка только в группу!
+                const message = prompt('Введите сообщение для рассылки в группу:');
+                if (message) {
+                    result = await broadcastToGroup(message);
+                } else {
+                    result = { ok: false, description: 'Сообщение не введено' };
+                }
+                break;
+            case 'stats':
+                result = await getBotStatistics();
+                break;
+            case 'restart':
+                result = { ok: true, description: 'Бот перезапущен (имитация)' };
+                break;
+            case 'test':
+                result = await sendTestMessage();
+                break;
         }
-    },
+        
+        if (result.ok) {
+            showResponse(responseBox, '✅ ' + result.description, 'success');
+        } else {
+            showResponse(responseBox, '❌ ' + result.description, 'error');
+        }
+    } catch (error) {
+        showResponse(responseBox, '❌ Ошибка: ' + error.message, 'error');
+    } finally {
+        loading.classList.remove('active');
+    }
+}
+
+function getBotInfo() {
+    const responseBox = document.getElementById('commandResponse');
+    const info = `
+🤖 Информация о боте:
+────────────────────
+Токен: ${BOT_TOKEN.substring(0, 10)}...
+ID группы: ${DEFAULT_GROUP_ID}
+Имя: JARVIS Bot
+Режим: ${currentChatId === DEFAULT_GROUP_ID ? 'ГРУППА' : 'ЛИЧНЫЙ ЧАТ'}
+────────────────────
+Функции:
+• Отправка в группу/личные
+• Шутки 5 категорий
+• Магический шар
+• Управление через веб
+    `;
+    showResponse(responseBox, info, 'info');
+}
+
+async function getUserCount() {
+    const responseBox = document.getElementById('commandResponse');
+    showResponse(responseBox, 'Запрашиваю количество пользователей...', 'info');
     
-    // Создание бэкапа
-    async createBackup() {
-        try {
-            const backupData = {
-                jokes: this.jokes,
-                answers: this.answers,
-                users: this.users,
-                logs: this.logs,
-                timestamp: Date.now(),
-                version: '1.0'
+    try {
+        // Имитация получения количества пользователей
+        setTimeout(() => {
+            const count = Math.floor(Math.random() * 1000) + 500;
+            stats.totalUsers = count;
+            updateDisplayStats();
+            showResponse(responseBox, `✅ Количество пользователей: ${count}`, 'success');
+        }, 1000);
+    } catch (error) {
+        showResponse(responseBox, '❌ Ошибка: ' + error.message, 'error');
+    }
+}
+
+// ===== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =====
+async function sendTelegramMessage(chatId, text) {
+    const response = await fetch(`${API_URL}/sendMessage`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            chat_id: chatId,
+            text: text,
+            parse_mode: 'HTML'
+        })
+    });
+    
+    return await response.json();
+}
+
+async function getMyChatId() {
+    try {
+        // Пытаемся получить последние обновления
+        const response = await fetch(`${API_URL}/getUpdates`);
+        const data = await response.json();
+        
+        if (data.ok && data.result.length > 0) {
+            return data.result[0].message.chat.id;
+        }
+    } catch (error) {
+        console.error('Ошибка получения chat_id:', error);
+    }
+    
+    // Если не удалось, предлагаем ввести вручную
+    const manualId = prompt('Введите ваш личный Telegram ID (или оставьте пустым для отправки в группу):');
+    return manualId || DEFAULT_GROUP_ID;
+}
+
+async function checkBotStatus() {
+    try {
+        const response = await fetch(`${API_URL}/getMe`);
+        const data = await response.json();
+        
+        if (data.ok) {
+            return {
+                ok: true,
+                description: `Бот активен: ${data.result.first_name} (@${data.result.username})`
             };
-            
-            const backupModal = document.getElementById('backupModal');
-            const backupTextarea = document.getElementById('backupData');
-            
-            backupTextarea.value = JSON.stringify(backupData, null, 2);
-            backupModal.classList.add('active');
-            
-            this.log('Бэкап данных создан');
-            
-        } catch (error) {
-            console.error('Ошибка создания бэкапа:', error);
+        } else {
+            return {
+                ok: false,
+                description: 'Бот не отвечает'
+            };
         }
-    },
+    } catch (error) {
+        return {
+            ok: false,
+            description: 'Ошибка соединения: ' + error.message
+        };
+    }
+}
+
+async function broadcastToGroup(message) {
+    try {
+        const response = await sendTelegramMessage(DEFAULT_GROUP_ID, 
+            `📢 РАССЫЛКА:\n\n${message}`);
+        
+        if (response.ok) {
+            return {
+                ok: true,
+                description: `Рассылка в группу выполнена!`
+            };
+        } else {
+            return {
+                ok: false,
+                description: 'Ошибка рассылки: ' + response.description
+            };
+        }
+    } catch (error) {
+        return {
+            ok: false,
+            description: 'Ошибка: ' + error.message
+        };
+    }
+}
+
+async function getBotStatistics() {
+    // Имитация статистики
+    return new Promise(resolve => {
+        setTimeout(() => {
+            resolve({
+                ok: true,
+                description: `Статистика бота:\n👥 Пользователей: ${stats.totalUsers}\n😂 Шуток: ${stats.totalJokes}\n🔮 Ответов шара: ${stats.totalBalls}\n💬 Сообщений: ${stats.totalMessages}\n🏠 Группа: ${DEFAULT_GROUP_ID}`
+            });
+        }, 1000);
+    });
+}
+
+async function sendTestMessage() {
+    try {
+        const response = await sendTelegramMessage(currentChatId, 
+            '✅ Тестовое сообщение от панели управления JARVIS\n\nБот работает корректно!');
+        
+        if (response.ok) {
+            return {
+                ok: true,
+                description: `Тестовое сообщение отправлено в ${currentChatId === DEFAULT_GROUP_ID ? 'группу' : 'личный чат'}`
+            };
+        } else {
+            return {
+                ok: false,
+                description: 'Ошибка отправки тестового сообщения'
+            };
+        }
+    } catch (error) {
+        return {
+            ok: false,
+            description: 'Ошибка: ' + error.message
+        };
+    }
+}
+
+function updateStats() {
+    // Обновляем случайные статистики для демонстрации
+    stats.totalUsers = Math.floor(Math.random() * 5000) + 1000;
+    stats.totalJokes = Math.floor(Math.random() * 10000) + 5000;
+    stats.totalBalls = Math.floor(Math.random() * 5000) + 2000;
+    stats.totalMessages = Math.floor(Math.random() * 20000) + 10000;
+    stats.ballUsed = Math.floor(Math.random() * 200) + 100;
     
-    // Добавление тестовых данных
-    async addSampleData() {
-        try {
-            // Тестовые шутки
-            const sampleJokes = [
-                { text: "Сэр, вероятность того, что вы поймёте эту шутку, равна 3.14159%.", category: "tech" },
-                { text: "Мои алгоритмы предсказывают, что эта шутка заставит вас улыбнуться с вероятностью 87%.", category: "ai" },
-                { text: "Как говорит мистер Старк: иногда чтобы починить систему, нужно сначала её сломать. Я применил это к вашему настроению.", category: "stark" }
-            ];
-            
-            // Тестовые ответы
-            const sampleAnswers = [
-                "Бесспорно",
-                "Вероятность высока",
-                "Спросите позже",
-                "Мой ответ — нет",
-                "Перспективы хорошие"
-            ];
-            
-            // Добавляем шутки
-            for (const joke of sampleJokes) {
-                await this.addJoke(joke.text, joke.category);
-            }
-            
-            // Добавляем ответы
-            for (const answer of sampleAnswers) {
-                await this.addAnswer(answer);
-            }
-            
-            this.showAIResponse('Тестовые данные успешно добавлены в базу');
-            
-        } catch (error) {
-            console.error('Ошибка добавления тестовых данных:', error);
-        }
-    },
+    updateDisplayStats();
     
-    // Очистка всех данных
-    async clearAllData() {
-        if (confirm('Вы уверены? Это удалит все данные из базы!')) {
-            try {
-                const jokesRef = firebase.ref(this.db, 'jokes');
-                const answersRef = firebase.ref(this.db, 'answers');
-                const usersRef = firebase.ref(this.db, 'users');
-                
-                await firebase.set(jokesRef, null);
-                await firebase.set(answersRef, null);
-                await firebase.set(usersRef, null);
-                
-                this.log('Все данные очищены');
-                this.showAIResponse('База данных очищена');
-                
-            } catch (error) {
-                console.error('Ошибка очистки данных:', error);
-            }
+    const responseBox = document.getElementById('commandResponse');
+    showResponse(responseBox, '✅ Статистика обновлена', 'success');
+}
+
+function updateDisplayStats() {
+    document.getElementById('totalUsers').textContent = stats.totalUsers.toLocaleString();
+    document.getElementById('totalJokes').textContent = stats.totalJokes.toLocaleString();
+    document.getElementById('totalBalls').textContent = stats.totalBalls.toLocaleString();
+    document.getElementById('totalMessages').textContent = stats.totalMessages.toLocaleString();
+    document.getElementById('ballAnswers').textContent = stats.ballAnswers;
+    document.getElementById('ballUsed').textContent = stats.ballUsed;
+}
+
+function showResponse(element, message, type) {
+    element.innerHTML = message;
+    element.className = 'response-box show';
+    
+    // Цвет в зависимости от типа
+    if (type === 'success') {
+        element.style.borderLeftColor = '#4CAF50';
+        element.style.background = 'rgba(76, 175, 80, 0.1)';
+    } else if (type === 'error') {
+        element.style.borderLeftColor = '#f44336';
+        element.style.background = 'rgba(244, 67, 54, 0.1)';
+    } else {
+        element.style.borderLeftColor = '#00bcd4';
+        element.style.background = 'rgba(0, 188, 212, 0.1)';
+    }
+    
+    // Автоскрытие через 10 секунд для успешных сообщений
+    if (type === 'success') {
+        setTimeout(() => {
+            element.classList.remove('show');
+        }, 10000);
+    }
+}
+
+function showResponseById(elementId, message, type) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        showResponse(element, message, type);
+    }
+}
+
+// Проверяем статус бота при загрузке
+window.onload = async function() {
+    const statusText = document.getElementById('statusText');
+    
+    try {
+        const response = await fetch(`${API_URL}/getMe`);
+        const data = await response.json();
+        
+        if (data.ok) {
+            statusText.textContent = `Бот активен: ${data.result.first_name}`;
+            
+            // Пробуем отправить тестовое сообщение в группу
+            setTimeout(async () => {
+                try {
+                    const testResponse = await sendTelegramMessage(DEFAULT_GROUP_ID, 
+                        '🤖 JARVIS подключен к группе через веб-панель!');
+                    
+                    if (!testResponse.ok) {
+                        console.warn('Не удалось отправить в группу:', testResponse.description);
+                    }
+                } catch (e) {
+                    console.warn('Тест группы не прошел:', e.message);
+                }
+            }, 2000);
+            
+        } else {
+            statusText.textContent = 'Бот не отвечает';
+            document.querySelector('.status-dot').style.background = '#f44336';
+            document.querySelector('.status').style.borderColor = 'rgba(244, 67, 54, 0.3)';
         }
+    } catch (error) {
+        statusText.textContent = 'Ошибка подключения';
+        document.querySelector('.status-dot').style.background = '#ff9800';
+        document.querySelector('.status').style.borderColor = 'rgba(255, 152, 0, 0.3)';
     }
 };
 
-// Глобальные функции для HTML
-function showAddJokeModal() {
-    const modal = document.getElementById('addJokeModal');
-    modal.classList.add('active');
-}
-
-function closeModal(modalId) {
-    const modal = document.getElementById(modalId);
-    modal.classList.remove('active');
-}
-
-async function saveJokeToFirebase() {
-    const text = document.getElementById('jokeText').value;
-    const category = document.getElementById('jokeCategory').value;
-    
-    if (text.trim()) {
-        const success = await JarvisApp.addJoke(text, category);
-        if (success) {
-            closeModal('addJokeModal');
-            document.getElementById('jokeText').value = '';
-        }
-    } else {
-        alert('Введите текст шутки');
-    }
-}
-
-async function addAnswer() {
-    const input = document.getElementById('newAnswer');
-    const text = input.value.trim();
-    
-    if (text) {
-        const success = await JarvisApp.addAnswer(text);
-        if (success) {
-            input.value = '';
-        }
-    } else {
-        alert('Введите текст ответа');
-    }
-}
-
-function shakeBall() {
-    JarvisApp.shakeBall();
-}
-
-function syncData() {
-    JarvisApp.loadAllData();
-    JarvisApp.showAIResponse('Синхронизация данных с Firebase...');
-}
-
-function exportData() {
-    JarvisApp.createBackup();
-}
-
-function downloadBackup() {
-    const backupTextarea = document.getElementById('backupData');
-    const blob = new Blob([backupTextarea.value], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `jarvis-backup-${Date.now()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-}
-
-function copyBackup() {
-    const backupTextarea = document.getElementById('backupData');
-    backupTextarea.select();
-    document.execCommand('copy');
-    alert('Бэкап скопирован в буфер обмена');
-}
-
-function clearLogs() {
-    const logsDiv = document.getElementById('firebaseLogs');
-    logsDiv.innerHTML = '<div class="log-entry">Логи очищены</div>';
-}
-
-// Инициализация при загрузке страницы
-document.addEventListener('DOMContentLoaded', () => {
-    // Инициализация приложения
-    JarvisApp.init();
-    
-    // Настройка навигации
-    const navItems = document.querySelectorAll('.nav-menu li');
-    navItems.forEach(item => {
-        item.addEventListener('click', () => {
-            const tabId = item.getAttribute('data-tab');
-            
-            // Убираем активный класс у всех
-            navItems.forEach(i => i.classList.remove('active'));
-            // Добавляем активный класс текущему
-            item.classList.add('active');
-            
-            // Скрываем все вкладки
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // Показываем нужную вкладку
-            const activeTab = document.getElementById(tabId);
-            if (activeTab) {
-                activeTab.classList.add('active');
-            }
-        });
-    });
-    
-    // Обновление значений слайдера сарказма
-    const sarcasmSlider = document.getElementById('sarcasmLevel');
-    const sarcasmValue = document.getElementById('sarcasmValue');
-    if (sarcasmSlider && sarcasmValue) {
-        sarcasmSlider.addEventListener('input', () => {
-            sarcasmValue.textContent = `${sarcasmSlider.value}%`;
-        });
-    }
-    
-    // Поиск шуток
-    const jokeSearch = document.getElementById('jokeSearch');
-    if (jokeSearch) {
-        jokeSearch.addEventListener('input', searchJokes);
-    }
-    
-    // Стили для анимации тряски шара
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes shake {
-            0%, 100% { transform: rotate(0deg); }
-            25% { transform: rotate(5deg); }
-            50% { transform: rotate(-5deg); }
-            75% { transform: rotate(5deg); }
-        }
-        
-        .empty-state {
-            text-align: center;
-            padding: 3rem;
-            color: #94a3b8;
-        }
-        
-        .empty-state i {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-            color: #475569;
-        }
-        
-        .empty-state button {
-            margin-top: 1rem;
-            background: #3b82f6;
-            color: white;
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        
-        .answer-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.8rem;
-            background: rgba(255, 255, 255, 0.05);
-            margin-bottom: 0.5rem;
-            border-radius: 5px;
-        }
-        
-        .answer-item button {
-            background: transparent;
-            border: none;
-            color: #f87171;
-            cursor: pointer;
-        }
-    `;
-    document.head.appendChild(style);
-});
-
-// Функция поиска шуток
-function searchJokes() {
-    const searchTerm = document.getElementById('jokeSearch').value.toLowerCase();
-    const jokesContainer = document.getElementById('jokesContainer');
-    
-    if (!jokesContainer || !JarvisApp.jokes) return;
-    
-    const jokesArray = Array.isArray(JarvisApp.jokes) ? JarvisApp.jokes : Object.values(JarvisApp.jokes);
-    const filteredJokes = jokesArray.filter(joke => 
-        (joke.text && joke.text.toLowerCase().includes(searchTerm)) ||
-        (joke.category && joke.category.toLowerCase().includes(searchTerm))
-    );
-    
-    jokesContainer.innerHTML = '';
-    
-    filteredJokes.forEach((joke, index) => {
-        const jokeElement = document.createElement('div');
-        jokeElement.className = 'joke-item';
-        jokeElement.innerHTML = `
-            <div class="joke-text">
-                <span class="joke-category">${joke.category || 'Без категории'}</span>
-                <p>${joke.text || ''}</p>
-            </div>
-            <div class="joke-actions">
-                <button onclick="JarvisApp.sendJokeToTelegram('${index}')">
-                    <i class="fas fa-paper-plane"></i>
-                </button>
-                <button onclick="JarvisApp.deleteJoke('${index}')" class="btn-danger">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
-        `;
-        jokesContainer.appendChild(jokeElement);
-    });
-}
-
-// Фильтрация шуток по категории
-function filterJokes() {
-    const category = document.getElementById('categoryFilter').value;
-    const jokesContainer = document.getElementById('jokesContainer');
-    
-    if (!jokesContainer || !JarvisApp.jokes) return;
-    
-    const jokesArray = Array.isArray(JarvisApp.jokes) ? JarvisApp.jokes : Object.values(JarvisApp.jokes);
-    const filteredJokes = category === 'all' 
-        ? jokesArray 
-        : jokesArray.filter(joke => joke.category === category);
-    
-    jokesContainer.innerHTML = '';
-    
-    filteredJokes.forEach((joke, index) => {
-        const jokeElement = document.createElement('div');
-        jokeElement.className = 'joke-item';
-        jokeElement.innerHTML = `
-            <div class="joke-text">
-                <span class="joke-category">${joke.category || 'Без категории'}</span>
-                <p>${joke.text || ''}</p>
-            </div>
-            <div class="joke-actions">
-                <button onclick="JarvisApp.sendJokeToTelegram('${index}')">
-                    <i class="fas fa-paper-plane"></i>
-                </button>
-                <button onclick="JarvisApp.deleteJoke('${index}')" class="btn-danger">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
-        `;
-        jokesContainer.appendChild(jokeElement);
-    });
-}
-
-// Загрузка шуток
-function loadJokes() {
-    JarvisApp.updateJokesUI();
-    JarvisApp.showAIResponse('Список шуток обновлен');
-}
+// Тест группы (для консоли)
+window.testGroup = async function() {
+    console.log('Тестирую отправку в группу...');
+    const response = await sendTelegramMessage(DEFAULT_GROUP_ID, '🎯 Тест отправки из консоли!');
+    console.log('Результат:', response);
+    alert(response.ok ? '✅ Успешно!' : '❌ Ошибка: ' + response.description);
+};

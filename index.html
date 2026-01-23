@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Хухря - Панель управления</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Шапка -->
+        <header class="header">
+            <div class="logo">
+                <i class="fas fa-robot"></i>
+                <h1>Хухря Бот</h1>
+                <span class="status active">● Активен</span>
+            </div>
+            <div class="user-info">
+                <button id="logoutBtn" class="btn btn-logout">
+                    <i class="fas fa-sign-out-alt"></i> Выйти
+                </button>
+            </div>
+        </header>
+
+        <!-- Основной контент -->
+        <div class="main-content">
+            <!-- Левая панель -->
+            <nav class="sidebar">
+                <ul class="nav-menu">
+                    <li class="active"><a href="#dashboard"><i class="fas fa-tachometer-alt"></i> Панель</a></li>
+                    <li><a href="#jokes"><i class="fas fa-laugh"></i> Шутки</a></li>
+                    <li><a href="#magic-ball"><i class="fas fa-crystal-ball"></i> Магический шар</a></li>
+                    <li><a href="#users"><i class="fas fa-users"></i> Пользователи</a></li>
+                    <li><a href="#stats"><i class="fas fa-chart-bar"></i> Статистика</a></li>
+                    <li><a href="#settings"><i class="fas fa-cog"></i> Настройки</a></li>
+                </ul>
+                
+                <div class="bot-info">
+                    <h3>Информация о боте</h3>
+                    <p><strong>ID:</strong> <span id="botId">-</span></p>
+                    <p><strong>Имя:</strong> Хухря</p>
+                    <p><strong>Юзернейм:</strong> @huhrya_bot</p>
+                    <p><strong>Подписчики:</strong> <span id="subscribers">0</span></p>
+                </div>
+            </nav>
+
+            <!-- Правая область -->
+            <div class="content-area">
+                <!-- Дашборд -->
+                <section id="dashboard" class="tab-content active">
+                    <div class="dashboard-header">
+                        <h2><i class="fas fa-tachometer-alt"></i> Панель управления</h2>
+                        <button id="startBot" class="btn btn-success">
+                            <i class="fas fa-play"></i> Запустить бота
+                        </button>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: #4CAF50;">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 id="totalUsers">0</h3>
+                                <p>Всего пользователей</p>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: #2196F3;">
+                                <i class="fas fa-laugh"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 id="totalJokes">0</h3>
+                                <p>Шуток отправлено</p>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: #9C27B0;">
+                                <i class="fas fa-crystal-ball"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 id="totalBalls">0</h3>
+                                <p>Ответов шара</p>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: #FF9800;">
+                                <i class="fas fa-comments"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 id="totalMessages">0</h3>
+                                <p>Всего сообщений</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="quick-actions">
+                        <h3>Быстрые действия</h3>
+                        <div class="actions-grid">
+                            <button class="action-btn" onclick="sendTestJoke()">
+                                <i class="fas fa-paper-plane"></i>
+                                <span>Отправить тестовую шутку</span>
+                            </button>
+                            <button class="action-btn" onclick="showAddJokeModal()">
+                                <i class="fas fa-plus"></i>
+                                <span>Добавить шутку</span>
+                            </button>
+                            <button class="action-btn" onclick="showBroadcastModal()">
+                                <i class="fas fa-bullhorn"></i>
+                                <span>Рассылка</span>
+                            </button>
+                            <button class="action-btn" onclick="showStatsModal()">
+                                <i class="fas fa-chart-pie"></i>
+                                <span>Детальная статистика</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="recent-activity">
+                        <h3>Последняя активность</h3>
+                        <div class="activity-list" id="activityList">
+                            <!-- Активность будет загружаться здесь -->
+                            <div class="activity-item">
+                                <i class="fas fa-info-circle"></i>
+                                <span>Загрузка...</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Управление шутками -->
+                <section id="jokes" class="tab-content">
+                    <div class="section-header">
+                        <h2><i class="fas fa-laugh"></i> Управление шутками</h2>
+                        <button class="btn btn-primary" onclick="showAddJokeModal()">
+                            <i class="fas fa-plus"></i> Добавить шутку
+                        </button>
+                    </div>
+
+                    <div class="filter-bar">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="jokeSearch" placeholder="Поиск шуток...">
+                        </div>
+                        <select id="categoryFilter" class="filter-select">
+                            <option value="all">Все категории</option>
+                            <option value="обычные">Обычные</option>
+                            <option value="черный">Черный юмор</option>
+                            <option value="программистские">Программистские</option>
+                            <option value="абсурдные">Абсурдные</option>
+                        </select>
+                        <button class="btn btn-secondary" onclick="loadJokes()">
+                            <i class="fas fa-sync-alt"></i> Обновить
+                        </button>
+                    </div>
+
+                    <div class="jokes-list" id="jokesList">
+                        <!-- Шутки будут загружаться здесь -->
+                        <div class="loading">Загрузка шуток...</div>
+                    </div>
+
+                    <div class="pagination">
+                        <button class="btn btn-pagination" onclick="prevPage()">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <span id="pageInfo">Страница 1 из 1</span>
+                        <button class="btn btn-pagination" onclick="nextPage()">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Магический шар -->
+                <section id="magic-ball" class="tab-content">
+                    <div class="section-header">
+                        <h2><i class="fas fa-crystal-ball"></i> Магический шар</h2>
+                    </div>
+
+                    <div class="magic-ball-container">
+                        <div class="ball-wrapper">
+                            <div class="magic-ball" id="magicBall">
+                                <div class="ball-inner">
+                                    <div class="triangle">
+                                        <span class="answer" id="ballAnswer">8</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="btn btn-magic" onclick="shakeBall()">
+                                <i class="fas fa-hand-rock"></i> Потрясти шар
+                            </button>
+                        </div>
+
+                        <div class="ball-controls">
+                            <h3>Управление ответами</h3>
+                            <div class="answers-list" id="answersList">
+                                <!-- Ответы будут загружаться здесь -->
+                            </div>
+                            
+                            <div class="add-answer-form">
+                                <h4>Добавить новый ответ</h4>
+                                <div class="form-group">
+                                    <input type="text" id="newAnswer" 
+                                           placeholder="Введите ответ для шара..." 
+                                           class="form-input">
+                                    <button class="btn btn-success" onclick="addAnswer()">
+                                        <i class="fas fa-plus"></i> Добавить
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Пользователи -->
+                <section id="users" class="tab-content">
+                    <div class="section-header">
+                        <h2><i class="fas fa-users"></i> Пользователи бота</h2>
+                    </div>
+
+                    <div class="users-table-container">
+                        <table class="users-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Имя</th>
+                                    <th>Юзернейм</th>
+                                    <th>Дата регистрации</th>
+                                    <th>Шутки</th>
+                                    <th>Ответы шара</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTable">
+                                <!-- Данные пользователей -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Статистика -->
+                <section id="stats" class="tab-content">
+                    <div class="section-header">
+                        <h2><i class="fas fa-chart-bar"></i> Статистика</h2>
+                        <select id="timeRange" class="filter-select" onchange="updateCharts()">
+                            <option value="day">За день</option>
+                            <option value="week">За неделю</option>
+                            <option value="month">За месяц</option>
+                            <option value="all">За все время</option>
+                        </select>
+                    </div>
+
+                    <div class="charts-container">
+                        <div class="chart-card">
+                            <h3>Активность по дням</h3>
+                            <canvas id="activityChart"></canvas>
+                        </div>
+                        <div class="chart-card">
+                            <h3>Распределение шуток</h3>
+                            <canvas id="jokesChart"></canvas>
+                        </div>
+                        <div class="chart-card">
+                            <h3>Топ пользователей</h3>
+                            <canvas id="usersChart"></canvas>
+                        </div>
+                        <div class="chart-card">
+                            <h3>Популярные ответы шара</h3>
+                            <canvas id="answersChart"></canvas>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Настройки -->
+                <section id="settings" class="tab-content">
+                    <div class="section-header">
+                        <h2><i class="fas fa-cog"></i> Настройки бота</h2>
+                    </div>
+
+                    <div class="settings-grid">
+                        <div class="settings-card">
+                            <h3><i class="fas fa-comment"></i> Тексты бота</h3>
+                            <div class="setting-item">
+                                <label>Приветственное сообщение</label>
+                                <textarea id="welcomeMessage" class="form-textarea">
+Привет! Я Хухря - бот с шутками на любой вкус! 🎭
+                                </textarea>
+                            </div>
+                            <div class="setting-item">
+                                <label>Сообщение помощи</label>
+                                <textarea id="helpMessage" class="form-textarea">
+Доступные команды:
+/шутка - случайная шутка
+/обычная - обычная шутка
+/черная - черный юмор
+/программистская - для IT-шников
+/абсурдная - абсурдный юмор
+/шар [вопрос] - магический шар
+                                </textarea>
+                            </div>
+                            <button class="btn btn-primary" onclick="saveTexts()">
+                                <i class="fas fa-save"></i> Сохранить тексты
+                            </button>
+                        </div>
+
+                        <div class="settings-card">
+                            <h3><i class="fas fa-robot"></i> Настройки бота</h3>
+                            <div class="setting-item">
+                                <label>Токен бота</label>
+                                <input type="password" id="botToken" class="form-input" 
+                                       value="Токен скрыт">
+                                <button class="btn btn-small" onclick="toggleToken()">
+                                    Показать/Скрыть
+                                </button>
+                            </div>
+                            <div class="setting-item">
+                                <label>Шанс ответа шуткой на сообщение (%)</label>
+                                <input type="range" id="jokeChance" min="0" max="100" value="30" 
+                                       class="form-range" onchange="updateChanceValue()">
+                                <span id="chanceValue">30%</span>
+                            </div>
+                            <div class="setting-item">
+                                <label>Автоответчик</label>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="autoReply" checked>
+                                    <span class="slider"></span>
+                                </div>
+                                <span class="toggle-label">Включен</span>
+                            </div>
+                            <button class="btn btn-primary" onclick="saveBotSettings()">
+                                <i class="fas fa-save"></i> Сохранить настройки
+                            </button>
+                        </div>
+
+                        <div class="settings-card">
+                            <h3><i class="fas fa-bell"></i> Уведомления</h3>
+                            <div class="setting-item">
+                                <label>Уведомлять о новых пользователях</label>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="notifyNewUsers" checked>
+                                    <span class="slider"></span>
+                                </div>
+                            </div>
+                            <div class="setting-item">
+                                <label>Уведомлять об ошибках</label>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="notifyErrors" checked>
+                                    <span class="slider"></span>
+                                </div>
+                            </div>
+                            <div class="setting-item">
+                                <label>Email для уведомлений</label>
+                                <input type="email" id="notifyEmail" class="form-input" 
+                                       placeholder="ваш@email.com">
+                            </div>
+                            <button class="btn btn-primary" onclick="saveNotifications()">
+                                <i class="fas fa-save"></i> Сохранить
+                            </button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальные окна -->
+    <div id="addJokeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-plus"></i> Добавить шутку</h3>
+                <span class="close" onclick="closeModal('addJokeModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Текст шутки:</label>
+                    <textarea id="newJokeText" class="form-textarea" 
+                              placeholder="Введите текст шутки..." rows="4"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Категория:</label>
+                    <select id="newJokeCategory" class="form-select">
+                        <option value="обычные">Обычные</option>
+                        <option value="черный">Черный юмор</option>
+                        <option value="программистские">Программистские</option>
+                        <option value="абсурдные">Абсурдные</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('addJokeModal')">
+                    Отмена
+                </button>
+                <button class="btn btn-primary" onclick="saveNewJoke()">
+                    <i class="fas fa-save"></i> Сохранить шутку
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="broadcastModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-bullhorn"></i> Рассылка сообщений</h3>
+                <span class="close" onclick="closeModal('broadcastModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Сообщение:</label>
+                    <textarea id="broadcastMessage" class="form-textarea" 
+                              placeholder="Введите сообщение для рассылки..." rows="5"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Отправить всем пользователям:</label>
+                    <div class="user-count">
+                        <span id="broadcastUserCount">0</span> пользователей
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('broadcastModal')">
+                    Отмена
+                </button>
+                <button class="btn btn-danger" onclick="sendBroadcast()">
+                    <i class="fas fa-paper-plane"></i> Отправить рассылку
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="testMessageModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-paper-plane"></i> Тестовое сообщение</h3>
+                <span class="close" onclick="closeModal('testMessageModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>ID пользователя (оставьте пустым для себя):</label>
+                    <input type="text" id="testUserId" class="form-input" 
+                           placeholder="ID пользователя Telegram">
+                </div>
+                <div class="form-group">
+                    <label>Сообщение:</label>
+                    <textarea id="testMessage" class="form-textarea" 
+                              placeholder="Введите тестовое сообщение..." rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Тип сообщения:</label>
+                    <select id="testMessageType" class="form-select">
+                        <option value="text">Текст</option>
+                        <option value="joke">Шутка</option>
+                        <option value="ball">Ответ шара</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('testMessageModal')">
+                    Отмена
+                </button>
+                <button class="btn btn-primary" onclick="sendTestMessage()">
+                    <i class="fas fa-paper-plane"></i> Отправить
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Скрипты -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

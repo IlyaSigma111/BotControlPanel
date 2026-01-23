@@ -133,6 +133,124 @@
         #mainContent {
             display: none;
         }
+        
+        /* Стили для управления группами */
+        .groups-management {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .groups-management {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .add-group-form {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+        
+        .groups-list {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+        
+        .groups-table {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+        
+        .group-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .group-info {
+            flex: 1;
+        }
+        
+        .group-name {
+            font-weight: bold;
+            color: #00bcd4;
+        }
+        
+        .group-id {
+            font-size: 12px;
+            color: #90a4ae;
+            font-family: monospace;
+        }
+        
+        .group-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .group-action-btn {
+            background: none;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .group-action-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .group-selector-container {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 15px;
+            align-items: end;
+            margin-top: 20px;
+        }
+        
+        .current-group-info {
+            padding: 12px;
+            background: rgba(0, 188, 212, 0.1);
+            border: 1px solid rgba(0, 188, 212, 0.3);
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        
+        .test-group-btn {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid rgba(76, 175, 80, 0.3);
+            color: #4CAF50;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .test-group-btn:hover {
+            background: rgba(76, 175, 80, 0.3);
+        }
+        
+        .mode-option {
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -162,7 +280,7 @@
             </div>
             
             <div class="login-footer">
-                <p>НЕ ЗАХОДИТЬ ПОСТОРОННИМ!</p>
+                <p>Код доступа: JojoTop1</p>
             </div>
         </div>
     </div>
@@ -180,7 +298,7 @@
                 <span id="statusText">Подключение...</span>
             </div>
             
-            <!-- Переключатель чата -->
+            <!-- Переключатель режима -->
             <div class="chat-mode-selector">
                 <div class="mode-option active" onclick="setChatMode('group')">
                     <i class="fas fa-users"></i>
@@ -191,7 +309,7 @@
                     <span>Личный чат</span>
                 </div>
             </div>
-            <div class="current-chat-info">
+            <div class="current-chat-info" id="currentChatInfo">
                 📢 Отправка в группу: -1003835999605
             </div>
         </header>
@@ -202,9 +320,16 @@
                 <h2><i class="fas fa-paper-plane"></i> Отправка сообщений</h2>
                 
                 <div class="form-group">
+                    <label>Выберите группу:</label>
+                    <select id="groupSelector" class="form-control" onchange="updateCurrentGroupInfo()">
+                        <!-- Группы загружаются через JS -->
+                    </select>
+                </div>
+                
+                <div class="form-group">
                     <label>Ваше сообщение</label>
                     <textarea id="messageText" class="form-control" 
-                              placeholder="Введите сообщение для отправки через бота..."></textarea>
+                              placeholder="Введите сообщение для отправки в выбранную группу..."></textarea>
                 </div>
                 
                 <button class="btn" onclick="sendMessage()">
@@ -240,6 +365,9 @@
                     <button class="quick-btn" onclick="sendJoke()">
                         <i class="fas fa-paper-plane"></i> Отправить шутку
                     </button>
+                    <button class="quick-btn" onclick="sendJokeToAllGroups()">
+                        <i class="fas fa-broadcast-tower"></i> Во все группы
+                    </button>
                 </div>
                 
                 <div id="jokeResponse" class="response-box"></div>
@@ -259,6 +387,10 @@
                     <i class="fas fa-hand-rock"></i> Потрясти шар
                 </button>
                 
+                <button class="btn btn-secondary" onclick="askMagicBallToAll()" style="margin-top: 10px;">
+                    <i class="fas fa-globe"></i> Во все группы
+                </button>
+                
                 <div id="ballResponse" class="response-box"></div>
             </div>
             
@@ -271,7 +403,8 @@
                     <select id="botCommand" class="form-control">
                         <option value="status">Проверить статус</option>
                         <option value="stats">Получить статистику</option>
-                        <option value="test">Тестовое сообщение</option>
+                        <option value="test">Тест в выбранную группу</option>
+                        <option value="testAll">Тест во все группы</option>
                     </select>
                 </div>
                 
@@ -300,17 +433,60 @@
                     <i class="fas fa-moon"></i> Чёрный юмор
                 </button>
             </div>
+            <button class="btn btn-secondary" onclick="sendQuickJokeToAll()" style="margin-top: 15px;">
+                <i class="fas fa-broadcast-tower"></i> Отправить во все группы
+            </button>
+        </div>
+        
+        <!-- Управление группами -->
+        <div class="card" style="grid-column: 1 / -1;">
+            <h2><i class="fas fa-users"></i> Управление группами</h2>
+            
+            <div class="groups-management">
+                <div class="add-group-form">
+                    <h3>Добавить новую группу</h3>
+                    <div class="form-group">
+                        <input type="text" id="newGroupId" class="form-control" 
+                               placeholder="ID группы (например: -1001234567890)">
+                        <input type="text" id="newGroupName" class="form-control" 
+                               placeholder="Название группы" style="margin-top: 10px;">
+                    </div>
+                    <button class="btn" onclick="addGroup()">
+                        <i class="fas fa-plus"></i> Добавить группу
+                    </button>
+                    <p style="font-size: 12px; color: #90a4ae; margin-top: 10px;">
+                        💡 Чтобы получить ID группы, добавьте бота @getidsbot в группу
+                    </p>
+                </div>
+                
+                <div class="groups-list">
+                    <h3>Сохраненные группы</h3>
+                    <div class="groups-table" id="groupsList">
+                        <!-- Группы загружаются через JS -->
+                    </div>
+                    <button class="btn btn-secondary" onclick="loadGroups()" style="margin-top: 15px;">
+                        <i class="fas fa-sync-alt"></i> Обновить список
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Информация о текущей группе -->
+        <div class="card" style="grid-column: 1 / -1;">
+            <h2><i class="fas fa-info-circle"></i> Текущая группа</h2>
+            <div class="current-group-info" id="currentGroupInfo">
+                📢 Выбрана группа: Основная (-1003835999605)
+            </div>
+            <button class="test-group-btn" onclick="testCurrentGroup()" style="margin-top: 15px;">
+                <i class="fas fa-vial"></i> Тест в выбранную группу
+            </button>
         </div>
         
         <footer>
-            <p>JARVIS Bot Control Panel © 2024</p>
-            <p style="margin-top: 10px; font-size: 0.8rem; color: #666;">
-                Группа: -1003835999605
-            </p>
+            <p>JARVIS Bot Control Panel © 2024 | Сохранено групп: <span id="groupsCount">1</span></p>
         </footer>
     </div>
 
     <script src="script.js"></script>
 </body>
 </html>
-

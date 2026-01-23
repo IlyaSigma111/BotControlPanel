@@ -1,8 +1,19 @@
-// Конфигурация
+// ===== СИСТЕМА БЕЗОПАСНОСТИ =====
+const ACCESS_CODE = "JojoTop1"; // Правильный код доступа
+let attemptsLeft = 3;
+let isLoggedIn = false;
+let sessionTimer = 30 * 60; // 30 минут в секундах
+let sessionInterval;
+let phantomCount = 0;
+let totalPhantoms = 0;
+let autoPhantomInterval = null;
+
+// ===== КОНФИГУРАЦИЯ БОТА =====
 const BOT_TOKEN = '8280726925:AAHP4QQrGZlr2K09CFs0kkxAsCQFKEnuCHM';
 const GROUP_ID = '-1003835999605'; // Твоя группа
 const API_URL = `https://api.telegram.org/bot${BOT_TOKEN}`;
 
+// ===== БАЗЫ ДАННЫХ =====
 // База данных шуток
 const jokesDatabase = {
     programming: [
@@ -66,7 +77,7 @@ const magicBallAnswers = [
     "Весьма сомнительно"
 ];
 
-// Статистика
+// ===== СТАТИСТИКА =====
 let stats = {
     totalUsers: 0,
     totalJokes: 0,
@@ -76,16 +87,353 @@ let stats = {
     ballUsed: 0
 };
 
-// Текущий режим (group или personal)
+// ===== ПЕРЕМЕННЫЕ СИСТЕМЫ =====
 let currentMode = 'group';
 let personalChatId = null;
 
-// Инициализация
+// ===== ИНИЦИАЛИЗАЦИЯ =====
 document.addEventListener('DOMContentLoaded', function() {
+    // Показываем экран входа
+    showLoginScreen();
+    
+    // Проверяем сохраненную сессию
+    const savedSession = localStorage.getItem('jarvis_session');
+    if (savedSession && Date.now() - parseInt(savedSession) < 30 * 60 * 1000) {
+        // Сессия действительна, автовход
+        grantAccess();
+    }
+    
+    // Инициализация основной панели (будет выполнена после входа)
+    setTimeout(() => {
+        if (isLoggedIn) {
+            updateDisplayStats();
+            showJokeExample();
+            checkBotStatusOnLoad();
+        }
+    }, 100);
+});
+
+// ===== СИСТЕМА БЕЗОПАСНОСТИ - ФУНКЦИИ =====
+
+// Показать экран входа
+function showLoginScreen() {
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('mainContent').style.display = 'none';
+    updateAttemptsDisplay();
+}
+
+// Скрыть экран входа
+function hideLoginScreen() {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('mainContent').style.display = 'block';
+}
+
+// Проверка кода доступа
+function checkAccessCode() {
+    if (!isLoggedIn) {
+        const codeInput = document.getElementById('accessCode').value;
+        const errorElement = document.getElementById('loginError');
+        
+        if (codeInput === ACCESS_CODE) {
+            // Правильный код
+            grantAccess();
+        } else {
+            // Неправильный код
+            attemptsLeft--;
+            updateAttemptsDisplay();
+            
+            if (attemptsLeft <= 0) {
+                errorElement.textContent = '❌ Доступ заблокирован! Попытки исчерпаны.';
+                errorElement.classList.add('show');
+                document.getElementById('accessCode').disabled = true;
+                document.querySelector('.btn-login').disabled = true;
+                
+                // Блокировка на 5 минут
+                setTimeout(() => {
+                    attemptsLeft = 3;
+                    updateAttemptsDisplay();
+                    document.getElementById('accessCode').disabled = false;
+                    document.querySelector('.btn-login').disabled = false;
+                    errorElement.classList.remove('show');
+                }, 5 * 60 * 1000);
+            } else {
+                errorElement.textContent = `❌ Неверный код! Осталось попыток: ${attemptsLeft}`;
+                errorElement.classList.add('show');
+                
+                // Анимация ошибки
+                setTimeout(() => {
+                    errorElement.classList.remove('show');
+                }, 3000);
+            }
+        }
+    }
+}
+
+// Проверка нажатия Enter
+function checkEnter(event) {
+    if (event.key === 'Enter') {
+        checkAccessCode();
+    }
+}
+
+// Обновление отображения попыток
+function updateAttemptsDisplay() {
+    const attemptsElement = document.getElementById('attemptsCount');
+    if (attemptsElement) {
+        attemptsElement.textContent = attemptsLeft;
+        
+        // Меняем цвет в зависимости от попыток
+        const counter = document.getElementById('attemptsCounter');
+        if (counter) {
+            if (attemptsLeft === 3) {
+                counter.style.color = '#4CAF50';
+            } else if (attemptsLeft === 2) {
+                counter.style.color = '#FF9800';
+            } else {
+                counter.style.color = '#f44336';
+            }
+        }
+    }
+}
+
+// Предоставление доступа
+function grantAccess() {
+    isLoggedIn = true;
+    
+    // Сохраняем время входа
+    localStorage.setItem('jarvis_session', Date.now().toString());
+    
+    // Скрываем экран входа
+    hideLoginScreen();
+    
+    // Запускаем таймер сессии
+    startSessionTimer();
+    
+    // Инициализируем основную панель
     updateDisplayStats();
     showJokeExample();
     checkBotStatusOnLoad();
-});
+    
+    // Загружаем счетчик фантомов
+    loadPhantomData();
+    
+    // Показываем приветственное сообщение
+    setTimeout(() => {
+        showResponseById('messageResponse', '✅ Доступ предоставлен. Добро пожаловать в систему JARVIS!', 'success');
+    }, 500);
+}
+
+// Фантомный доступ
+function phantomAccess() {
+    phantomCount++;
+    totalPhantoms++;
+    document.getElementById('phantomCount').textContent = phantomCount;
+    
+    // Сохраняем данные
+    savePhantomData();
+    
+    // Показываем сообщение
+    const errorElement = document.getElementById('loginError');
+    if (errorElement) {
+        errorElement.textContent = `👻 Фантомный доступ активирован (${phantomCount} раз)`;
+        errorElement.style.color = '#9c27b0';
+        errorElement.style.background = 'rgba(156, 39, 176, 0.1)';
+        errorElement.style.borderColor = 'rgba(156, 39, 176, 0.3)';
+        errorElement.classList.add('show');
+        
+        // Скрываем сообщение
+        setTimeout(() => {
+            errorElement.classList.remove('show');
+        }, 3000);
+    }
+    
+    // Автоматически запускаем случайное действие
+    setTimeout(() => {
+        const actions = [simulatePhantomClick, simulatePhantomJoke];
+        const randomAction = actions[Math.floor(Math.random() * actions.length)];
+        randomAction();
+    }, 1000);
+}
+
+// Загрузка данных фантомов
+function loadPhantomData() {
+    const savedData = localStorage.getItem('jarvis_phantoms');
+    if (savedData) {
+        try {
+            const data = JSON.parse(savedData);
+            phantomCount = data.count || 0;
+            totalPhantoms = data.total || 0;
+            
+            document.getElementById('phantomCount').textContent = phantomCount;
+            document.getElementById('totalPhantoms').textContent = totalPhantoms;
+            document.getElementById('lastPhantomTime').textContent = data.lastTime || 'никогда';
+            
+            // Показываем панель фантомов если есть активность
+            if (phantomCount > 0) {
+                document.getElementById('phantomPanel').style.display = 'block';
+            }
+        } catch (e) {
+            console.error('Ошибка загрузки данных фантомов:', e);
+        }
+    }
+}
+
+// Сохранение данных фантомов
+function savePhantomData() {
+    const data = {
+        count: phantomCount,
+        total: totalPhantoms,
+        lastTime: new Date().toLocaleTimeString()
+    };
+    localStorage.setItem('jarvis_phantoms', JSON.stringify(data));
+    
+    // Обновляем отображение
+    document.getElementById('totalPhantoms').textContent = totalPhantoms;
+    document.getElementById('lastPhantomTime').textContent = data.lastTime;
+    
+    // Показываем панель фантомов
+    document.getElementById('phantomPanel').style.display = 'block';
+}
+
+// Симулировать нажатие на шар
+function simulatePhantomClick() {
+    if (!isLoggedIn) return;
+    
+    // Случайный вопрос
+    const questions = [
+        "Что будет завтра?",
+        "Стоит ли мне это делать?",
+        "Повезёт ли мне?",
+        "Что думает обо мне Джарвис?",
+        "Сбудется ли моё желание?"
+    ];
+    
+    const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
+    document.getElementById('question').value = randomQuestion;
+    
+    // Автоматически запускаем шар
+    setTimeout(() => {
+        askMagicBall();
+        
+        // Показываем сообщение
+        showResponseById('ballResponse', '👻 Фантом потряс шар и получил ответ!', 'info');
+    }, 500);
+    
+    // Обновляем статистику
+    phantomCount++;
+    totalPhantoms++;
+    savePhantomData();
+}
+
+// Симулировать отправку шутки
+function simulatePhantomJoke() {
+    if (!isLoggedIn) return;
+    
+    const types = ['programming', 'ai', 'stark', 'dark', 'random'];
+    const randomType = types[Math.floor(Math.random() * types.length)];
+    
+    // Устанавливаем тип
+    document.getElementById('jokeType').value = randomType;
+    
+    // Показываем пример
+    showJokeExample();
+    
+    // Автоматически отправляем через 1 секунду
+    setTimeout(() => {
+        sendJoke();
+        
+        // Показываем сообщение
+        showResponseById('jokeResponse', '👻 Фантом отправил шутку в чат!', 'info');
+    }, 1000);
+    
+    // Обновляем статистику
+    phantomCount++;
+    totalPhantoms++;
+    savePhantomData();
+}
+
+// Авто-фантом
+function activateAutoPhantom() {
+    if (!isLoggedIn) return;
+    
+    if (autoPhantomInterval) {
+        clearInterval(autoPhantomInterval);
+        autoPhantomInterval = null;
+        showResponseById('commandResponse', '❌ Авто-фантом остановлен', 'error');
+        return;
+    }
+    
+    showResponseById('commandResponse', '👻 Авто-фантом активирован на 30 секунд', 'success');
+    
+    let timeLeft = 30;
+    autoPhantomInterval = setInterval(() => {
+        // Случайное действие каждые 5-10 секунд
+        const actions = [simulatePhantomClick, simulatePhantomJoke];
+        const randomAction = actions[Math.floor(Math.random() * actions.length)];
+        randomAction();
+        
+        timeLeft -= 5;
+        
+        if (timeLeft <= 0) {
+            clearInterval(autoPhantomInterval);
+            autoPhantomInterval = null;
+            showResponseById('commandResponse', '👻 Авто-фантом завершил работу', 'info');
+        }
+    }, 5000);
+}
+
+// Таймер сессии
+function startSessionTimer() {
+    clearInterval(sessionInterval);
+    
+    sessionInterval = setInterval(() => {
+        sessionTimer--;
+        
+        const minutes = Math.floor(sessionTimer / 60);
+        const seconds = sessionTimer % 60;
+        document.getElementById('sessionTimer').textContent = 
+            `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        
+        // Предупреждение за 5 минут до конца
+        if (sessionTimer === 5 * 60) {
+            showResponseById('messageResponse', '⚠️ Сессия истекает через 5 минут!', 'error');
+        }
+        
+        // Завершение сессии
+        if (sessionTimer <= 0) {
+            logout();
+        }
+    }, 1000);
+}
+
+// Выход из системы
+function logout() {
+    isLoggedIn = false;
+    clearInterval(sessionInterval);
+    clearInterval(autoPhantomInterval);
+    
+    // Очищаем сессию
+    localStorage.removeItem('jarvis_session');
+    
+    // Сбрасываем таймер
+    sessionTimer = 30 * 60;
+    
+    // Показываем экран входа
+    showLoginScreen();
+    
+    // Очищаем поля
+    document.getElementById('accessCode').value = '';
+    const errorElement = document.getElementById('loginError');
+    if (errorElement) {
+        errorElement.classList.remove('show');
+    }
+    
+    // Сбрасываем попытки (но не фантомы)
+    attemptsLeft = 3;
+    updateAttemptsDisplay();
+}
+
+// ===== ОСНОВНЫЕ ФУНКЦИИ БОТА =====
 
 // Проверка статуса бота при загрузке
 async function checkBotStatusOnLoad() {
@@ -112,6 +460,8 @@ async function checkBotStatusOnLoad() {
 
 // Установка режима чата
 function setChatMode(mode) {
+    if (!isLoggedIn) return;
+    
     currentMode = mode;
     
     // Обновляем активный класс у кнопок
@@ -137,6 +487,11 @@ function setChatMode(mode) {
 
 // ===== ОТПРАВКА СООБЩЕНИЙ =====
 async function sendMessage() {
+    if (!isLoggedIn) {
+        showResponseById('messageResponse', '❌ Доступ запрещен. Требуется авторизация.', 'error');
+        return;
+    }
+    
     const message = document.getElementById('messageText').value.trim();
     const responseBox = document.getElementById('messageResponse');
     
@@ -189,6 +544,11 @@ function showJokeExample() {
 }
 
 async function sendJoke() {
+    if (!isLoggedIn) {
+        showResponseById('jokeResponse', '❌ Доступ запрещен. Требуется авторизация.', 'error');
+        return;
+    }
+    
     const type = document.getElementById('jokeType').value;
     const jokes = jokesDatabase[type];
     const joke = jokes[Math.floor(Math.random() * jokes.length)];
@@ -228,11 +588,14 @@ async function sendJoke() {
 }
 
 function sendQuickJoke(type) {
+    if (!isLoggedIn) return;
     document.getElementById('jokeType').value = type;
     sendJoke();
 }
 
 function addJoke() {
+    if (!isLoggedIn) return;
+    
     const responseBox = document.getElementById('jokeResponse');
     const type = document.getElementById('jokeType').value;
     const joke = prompt(`Введите новую шутку для категории "${type}":`);
@@ -245,6 +608,8 @@ function addJoke() {
 }
 
 function getJokeStats() {
+    if (!isLoggedIn) return;
+    
     const responseBox = document.getElementById('jokeResponse');
     let statsText = '📊 Статистика шуток:\n\n';
     
@@ -257,6 +622,11 @@ function getJokeStats() {
 
 // ===== МАГИЧЕСКИЙ ШАР =====
 async function askMagicBall() {
+    if (!isLoggedIn) {
+        showResponseById('ballResponse', '❌ Доступ запрещен. Требуется авторизация.', 'error');
+        return;
+    }
+    
     const question = document.getElementById('question').value.trim();
     const responseBox = document.getElementById('ballResponse');
     
@@ -307,6 +677,11 @@ async function askMagicBall() {
 
 // ===== УПРАВЛЕНИЕ БОТОМ =====
 async function executeBotCommand() {
+    if (!isLoggedIn) {
+        showResponseById('commandResponse', '❌ Доступ запрещен. Требуется авторизация.', 'error');
+        return;
+    }
+    
     const command = document.getElementById('botCommand').value;
     const responseBox = document.getElementById('commandResponse');
     const loading = document.getElementById('botLoading');
@@ -342,6 +717,8 @@ async function executeBotCommand() {
 }
 
 function getBotInfo() {
+    if (!isLoggedIn) return;
+    
     const responseBox = document.getElementById('commandResponse');
     const info = `
 🤖 Информация о боте:
@@ -360,6 +737,8 @@ ID группы: ${GROUP_ID}
 }
 
 async function getUserCount() {
+    if (!isLoggedIn) return;
+    
     const responseBox = document.getElementById('commandResponse');
     showResponse(responseBox, 'Запрашиваю количество пользователей...', 'info');
     
@@ -498,6 +877,8 @@ async function sendTestMessage() {
 }
 
 function updateStats() {
+    if (!isLoggedIn) return;
+    
     // Обновляем случайные статистики для демонстрации
     stats.totalUsers = Math.floor(Math.random() * 5000) + 1000;
     stats.totalJokes = Math.floor(Math.random() * 10000) + 5000;

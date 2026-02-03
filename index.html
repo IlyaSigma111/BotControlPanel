@@ -3,33 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JARVIS Bot Control</title>
+    <title>NEO-CASCADE // QUANTUM HACK TERMINAL</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* Стили для экрана входа */
+        /* ЛОГИН ЭКРАН */
         .login-screen {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: #0f0c29;
+            background: #0a0a12;
             display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 1000;
+            z-index: 10000;
+            font-family: 'JetBrains Mono', monospace;
         }
         
         .login-box {
             background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(0, 255, 157, 0.2);
             border-radius: 20px;
             padding: 40px;
             width: 90%;
             max-width: 400px;
             text-align: center;
-            border: 1px solid #00bcd4;
-            box-shadow: 0 0 30px rgba(0, 188, 212, 0.3);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5),
+                        inset 0 0 50px rgba(0, 255, 157, 0.1);
+            animation: pulse 3s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), inset 0 0 50px rgba(0, 255, 157, 0.1); }
+            50% { box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), inset 0 0 50px rgba(0, 255, 157, 0.2); }
         }
         
         .login-logo {
@@ -38,79 +47,92 @@
         
         .login-logo i {
             font-size: 60px;
-            color: #00bcd4;
+            background: linear-gradient(45deg, #00ff9d, #00e5ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
             margin-bottom: 20px;
+            animation: glow 2s infinite;
         }
         
         .login-logo h1 {
             font-size: 28px;
-            color: white;
+            font-family: 'Orbitron', sans-serif;
+            background: linear-gradient(45deg, #00ff9d, #00e5ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
             margin-bottom: 10px;
         }
         
         .login-subtitle {
-            color: #90a4ae;
+            color: rgba(255, 255, 255, 0.6);
             font-size: 14px;
+            letter-spacing: 2px;
         }
         
         #accessCode {
             width: 100%;
             padding: 15px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(0, 229, 255, 0.3);
             border-radius: 10px;
             color: white;
             font-size: 16px;
             margin-bottom: 20px;
+            font-family: 'JetBrains Mono', monospace;
             outline: none;
+            transition: all 0.3s;
         }
         
         #accessCode:focus {
-            border-color: #00bcd4;
+            border-color: #00ff9d;
+            box-shadow: 0 0 15px rgba(0, 255, 157, 0.3);
         }
         
         .login-btn {
             width: 100%;
             padding: 15px;
-            background: #00bcd4;
+            background: linear-gradient(45deg, #00ff9d, #00cc88);
             border: none;
             border-radius: 10px;
-            color: white;
+            color: black;
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
             margin-bottom: 15px;
-            transition: 0.3s;
+            transition: all 0.3s;
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 1px;
         }
         
         .login-btn:hover {
-            background: #0097a7;
             transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 255, 157, 0.4);
         }
         
         .ghost-btn {
             width: 100%;
             padding: 12px;
             background: transparent;
-            border: 2px solid #9c27b0;
+            border: 2px solid #b967ff;
             border-radius: 10px;
-            color: #9c27b0;
+            color: #b967ff;
             font-size: 14px;
             cursor: pointer;
             transition: 0.3s;
+            font-family: 'JetBrains Mono', monospace;
         }
         
         .ghost-btn:hover {
-            background: rgba(156, 39, 176, 0.1);
+            background: rgba(185, 103, 255, 0.1);
         }
         
         #loginError {
             margin-top: 15px;
             padding: 10px;
-            background: rgba(244, 67, 54, 0.1);
-            border: 1px solid rgba(244, 67, 54, 0.3);
+            background: rgba(255, 42, 109, 0.1);
+            border: 1px solid rgba(255, 42, 109, 0.3);
             border-radius: 8px;
-            color: #f44336;
+            color: #ff2a6d;
             font-size: 14px;
             display: none;
         }
@@ -118,373 +140,299 @@
         .attempts {
             margin-top: 15px;
             font-size: 14px;
-            color: #ff9800;
+            color: #ff9900;
         }
         
         .login-footer {
             margin-top: 25px;
             padding-top: 20px;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
-            color: #78909c;
+            color: rgba(255, 255, 255, 0.4);
             font-size: 12px;
         }
         
-        /* Главный контент */
         #mainContent {
             display: none;
-        }
-        
-        /* Стили для управления группами */
-        .groups-management {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            margin-top: 20px;
-        }
-        
-        @media (max-width: 768px) {
-            .groups-management {
-                grid-template-columns: 1fr;
-            }
-        }
-        
-        .add-group-form {
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-        }
-        
-        .groups-list {
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-        }
-        
-        .groups-table {
-            max-height: 300px;
-            overflow-y: auto;
-            margin-top: 15px;
-        }
-        
-        .group-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px;
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 8px;
-            margin-bottom: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .group-info {
-            flex: 1;
-        }
-        
-        .group-name {
-            font-weight: bold;
-            color: #00bcd4;
-        }
-        
-        .group-id {
-            font-size: 12px;
-            color: #90a4ae;
-            font-family: monospace;
-        }
-        
-        .group-actions {
-            display: flex;
-            gap: 8px;
-        }
-        
-        .group-action-btn {
-            background: none;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: white;
-            width: 30px;
-            height: 30px;
-            border-radius: 5px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .group-action-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-        
-        .group-selector-container {
-            display: grid;
-            grid-template-columns: 1fr auto;
-            gap: 15px;
-            align-items: end;
-            margin-top: 20px;
-        }
-        
-        .current-group-info {
-            padding: 12px;
-            background: rgba(0, 188, 212, 0.1);
-            border: 1px solid rgba(0, 188, 212, 0.3);
-            border-radius: 8px;
-            margin-top: 15px;
-            font-size: 14px;
-        }
-        
-        .test-group-btn {
-            background: rgba(76, 175, 80, 0.2);
-            border: 1px solid rgba(76, 175, 80, 0.3);
-            color: #4CAF50;
-            padding: 10px 15px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .test-group-btn:hover {
-            background: rgba(76, 175, 80, 0.3);
-        }
-        
-        .mode-option {
-            cursor: pointer;
         }
     </style>
 </head>
 <body>
-    <!-- Экран входа -->
+    <!-- ЭКРАН ЛОГИНА -->
     <div id="loginScreen" class="login-screen">
         <div class="login-box">
             <div class="login-logo">
-                <i class="fas fa-lock"></i>
-                <h1>JARVIS CONTROL</h1>
-                <p class="login-subtitle">Система управления ботом</p>
+                <i class="fas fa-terminal"></i>
+                <h1>NEO-CASCADE</h1>
+                <p class="login-subtitle">QUANTUM HACK TERMINAL</p>
             </div>
             
-            <input type="password" id="accessCode" placeholder="Введите код доступа">
+            <input type="password" id="accessCode" placeholder="ВВЕДИТЕ КОД ДОСТУПА" autocomplete="off">
             
             <button class="login-btn" onclick="checkAccessCode()">
-                <i class="fas fa-sign-in-alt"></i> ВОЙТИ В СИСТЕМУ
+                <i class="fas fa-sign-in-alt"></i> ВХОД В СИСТЕМУ
             </button>
             
             <button class="ghost-btn" onclick="phantomAccess()">
-                <i class="fas fa-ghost"></i> Фантомный доступ
+                <i class="fas fa-ghost"></i> ФАНТОМНЫЙ ДОСТУП
             </button>
             
             <div id="loginError"></div>
             
             <div class="attempts">
-                Попытки: <span id="attemptsCount">3</span>/3
+                ПОПЫТКИ: <span id="attemptsCount">3</span>/3
             </div>
             
             <div class="login-footer">
-                <p>Код доступа: JojoTop1</p>
+                <p>КОД ДОСТУПА: JojoTop1</p>
             </div>
         </div>
     </div>
     
-    <!-- Основной контент -->
-    <div id="mainContent" class="container">
-        <header>
-            <div class="logo">
-                <i class="fas fa-robot"></i>
-                <h1>JARVIS BOT CONTROL</h1>
-            </div>
-            <p class="subtitle">Панель управления Telegram ботом</p>
-            <div class="status">
-                <div class="status-dot"></div>
-                <span id="statusText">Подключение...</span>
-            </div>
-            
-            <!-- Переключатель режима -->
-            <div class="chat-mode-selector">
-                <div class="mode-option active" onclick="setChatMode('group')">
-                    <i class="fas fa-users"></i>
-                    <span>Группа</span>
-                </div>
-                <div class="mode-option" onclick="setChatMode('personal')">
-                    <i class="fas fa-user"></i>
-                    <span>Личный чат</span>
-                </div>
-            </div>
-            <div class="current-chat-info" id="currentChatInfo">
-                📢 Отправка в группу: -1003835999605
-            </div>
-        </header>
-        
-        <main class="main-content">
-            <!-- Карточка отправки сообщений -->
-            <div class="card">
-                <h2><i class="fas fa-paper-plane"></i> Отправка сообщений</h2>
-                
-                <div class="form-group">
-                    <label>Выберите группу:</label>
-                    <select id="groupSelector" class="form-control" onchange="updateCurrentGroupInfo()">
-                        <!-- Группы загружаются через JS -->
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label>Ваше сообщение</label>
-                    <textarea id="messageText" class="form-control" 
-                              placeholder="Введите сообщение для отправки в выбранную группу..."></textarea>
-                </div>
-                
-                <button class="btn" onclick="sendMessage()">
-                    <i class="fas fa-paper-plane"></i> Отправить сообщение
-                </button>
-                
-                <div id="messageResponse" class="response-box"></div>
-            </div>
-            
-            <!-- Карточка управления шутками -->
-            <div class="card">
-                <h2><i class="fas fa-laugh"></i> Система юмора</h2>
-                
-                <div class="form-group">
-                    <label>Тип шутки</label>
-                    <select id="jokeType" class="form-control">
-                        <option value="random">Случайная шутка</option>
-                        <option value="programming">Программистская</option>
-                        <option value="dark">Чёрный юмор</option>
-                        <option value="ai">Про ИИ</option>
-                        <option value="stark">В стиле Старка</option>
-                    </select>
-                </div>
-                
-                <div id="jokePreview" class="joke-preview">
-                    Нажмите "Показать пример" для предпросмотра
-                </div>
-                
-                <div class="quick-actions">
-                    <button class="quick-btn" onclick="showJokeExample()">
-                        <i class="fas fa-eye"></i> Показать пример
-                    </button>
-                    <button class="quick-btn" onclick="sendJoke()">
-                        <i class="fas fa-paper-plane"></i> Отправить шутку
-                    </button>
-                    <button class="quick-btn" onclick="sendJokeToAllGroups()">
-                        <i class="fas fa-broadcast-tower"></i> Во все группы
-                    </button>
-                </div>
-                
-                <div id="jokeResponse" class="response-box"></div>
-            </div>
-            
-            <!-- Карточка магического шара -->
-            <div class="card">
-                <h2><i class="fas fa-crystal-ball"></i> Магический шар</h2>
-                
-                <div class="form-group">
-                    <label>Задайте вопрос</label>
-                    <input type="text" id="question" class="form-control" 
-                           placeholder="Задайте вопрос магическому шару...">
-                </div>
-                
-                <button class="btn" onclick="askMagicBall()">
-                    <i class="fas fa-hand-rock"></i> Потрясти шар
-                </button>
-                
-                <button class="btn btn-secondary" onclick="askMagicBallToAll()" style="margin-top: 10px;">
-                    <i class="fas fa-globe"></i> Во все группы
-                </button>
-                
-                <div id="ballResponse" class="response-box"></div>
-            </div>
-            
-            <!-- Карточка управления ботом -->
-            <div class="card">
-                <h2><i class="fas fa-cogs"></i> Управление ботом</h2>
-                
-                <div class="form-group">
-                    <label>Команды</label>
-                    <select id="botCommand" class="form-control">
-                        <option value="status">Проверить статус</option>
-                        <option value="stats">Получить статистику</option>
-                        <option value="test">Тест в выбранную группу</option>
-                        <option value="testAll">Тест во все группы</option>
-                    </select>
-                </div>
-                
-                <button class="btn" onclick="executeBotCommand()">
-                    <i class="fas fa-play"></i> Выполнить
-                </button>
-                
-                <div id="commandResponse" class="response-box"></div>
-            </div>
-        </main>
-        
-        <!-- Быстрые шутки -->
-        <div class="card" style="grid-column: 1 / -1;">
-            <h2><i class="fas fa-bolt"></i> Быстрые шутки</h2>
-            <div class="quick-actions" style="grid-template-columns: repeat(4, 1fr);">
-                <button class="quick-btn" onclick="sendQuickJoke('programming')">
-                    <i class="fas fa-code"></i> Техническая
-                </button>
-                <button class="quick-btn" onclick="sendQuickJoke('ai')">
-                    <i class="fas fa-brain"></i> Про ИИ
-                </button>
-                <button class="quick-btn" onclick="sendQuickJoke('stark')">
-                    <i class="fas fa-robot"></i> Старковская
-                </button>
-                <button class="quick-btn" onclick="sendQuickJoke('dark')">
-                    <i class="fas fa-moon"></i> Чёрный юмор
-                </button>
-            </div>
-            <button class="btn btn-secondary" onclick="sendQuickJokeToAll()" style="margin-top: 15px;">
-                <i class="fas fa-broadcast-tower"></i> Отправить во все группы
-            </button>
+    <!-- ОСНОВНОЙ ИНТЕРФЕЙС -->
+    <div id="mainContent">
+        <div class="glass-grid"></div>
+        <div class="floating-balls">
+            <div class="floating-ball ball-1"></div>
+            <div class="floating-ball ball-2"></div>
+            <div class="floating-ball ball-3"></div>
         </div>
         
-        <!-- Управление группами -->
-        <div class="card" style="grid-column: 1 / -1;">
-            <h2><i class="fas fa-users"></i> Управление группами</h2>
-            
-            <div class="groups-management">
-                <div class="add-group-form">
-                    <h3>Добавить новую группу</h3>
-                    <div class="form-group">
-                        <input type="text" id="newGroupId" class="form-control" 
-                               placeholder="ID группы (например: -1001234567890)">
-                        <input type="text" id="newGroupName" class="form-control" 
-                               placeholder="Название группы" style="margin-top: 10px;">
+        <div class="main-container">
+            <!-- Шапка -->
+            <header class="terminal-header">
+                <div class="logo-section">
+                    <div class="logo">
+                        <div class="logo-icon">
+                            <i class="fas fa-terminal"></i>
+                        </div>
+                        <div>
+                            <h1 class="logo-text">NEO-CASCADE</h1>
+                            <div class="logo-subtitle">quantum hack terminal</div>
+                        </div>
                     </div>
-                    <button class="btn" onclick="addGroup()">
-                        <i class="fas fa-plus"></i> Добавить группу
+                    <div class="status-indicator">
+                        <div class="status-dot"></div>
+                        <span id="statusText">SYSTEM ONLINE</span>
+                    </div>
+                </div>
+                <div class="session-info">
+                    <div class="session-timer">
+                        <i class="fas fa-clock"></i>
+                        <span id="sessionTimer">00:00</span>
+                    </div>
+                    <button class="btn-logout" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i> ВЫХОД
                     </button>
-                    <p style="font-size: 12px; color: #90a4ae; margin-top: 10px;">
-                        💡 Чтобы получить ID группы, добавьте бота @getidsbot в группу
-                    </p>
+                </div>
+            </header>
+            
+            <!-- Главный терминал -->
+            <main class="main-terminal">
+                <div class="terminal-title">
+                    <i class="fas fa-code"></i>
+                    <h2>QUANTUM EDITOR v4.2</h2>
                 </div>
                 
-                <div class="groups-list">
-                    <h3>Сохраненные группы</h3>
-                    <div class="groups-table" id="groupsList">
-                        <!-- Группы загружаются через JS -->
+                <!-- Фейковый редактор кода -->
+                <div class="code-editor">
+                    <div class="editor-header">
+                        <div class="editor-title">
+                            <i class="fas fa-file-code"></i>
+                            <span>neocascade_exploit.js</span>
+                        </div>
+                        <div class="editor-buttons">
+                            <button class="compile-btn" onclick="compileCode()">
+                                <i class="fas fa-play"></i> COMPILE
+                            </button>
+                            <button class="hack-btn" onclick="executeHack()">
+                                <i class="fas fa-skull-crossbones"></i> DEPLOY
+                            </button>
+                        </div>
                     </div>
-                    <button class="btn btn-secondary" onclick="loadGroups()" style="margin-top: 15px;">
-                        <i class="fas fa-sync-alt"></i> Обновить список
+                    <div class="editor-body">
+                        <pre><code class="code-keyword">const</code> <code class="code-function">quantumBypass</code> = () => {
+    <code class="code-keyword">const</code> encryptionKey = <code class="code-function">generateQuantumKey</code>();
+    <code class="code-keyword">const</code> backdoor = <code class="code-function">injectPayload</code>(encryptionKey);
+    <code class="code-keyword">return</code> backdoor;
+};
+
+<code class="code-keyword">async function</code> <code class="code-function">initiateNeoCascadeProtocol</code>() {
+    <code class="code-function">console</code>.<code class="code-function">log</code>(<code class="code-string">"[+] Инициализация квантового взлома..."</code>);
+    
+    <code class="code-keyword">await</code> <code class="code-function">sleep</code>(<code class="code-number">1500</code>);
+    <code class="code-keyword">const</code> access = <code class="code-keyword">await</code> <code class="code-function">bruteForceMainframe</code>();
+    
+    <code class="code-keyword">if</code> (access) {
+        <code class="code-function">console</code>.<code class="code-function">log</code>(<code class="code-string">"[!] Квантовый доступ получен!"</code>);
+        <code class="code-keyword">await</code> <code class="code-function">downloadSensitiveData</code>();
+    }
+}
+
+<code class="code-comment">// Введите ваш код ниже...</code></code></pre>
+                    </div>
+                    <div class="editor-footer">
+                        <div class="line-counter">Ln 18, Col 32</div>
+                        <div class="file-info">Quantum JavaScript</div>
+                    </div>
+                </div>
+                
+                <!-- Быстрый ввод -->
+                <div class="quick-command">
+                    <div class="terminal-title">
+                        <i class="fas fa-keyboard"></i>
+                        <h3>QUICK COMMAND</h3>
+                    </div>
+                    <div class="command-input">
+                        <input type="text" id="quickCommand" placeholder="$ Введите команду взлома...">
+                        <button onclick="executeQuickCommand()">EXECUTE</button>
+                    </div>
+                </div>
+            </main>
+            
+            <!-- Панель управления -->
+            <aside class="control-panel">
+                <div class="panel-title">
+                    <i class="fas fa-gamepad"></i>
+                    <h2>CONTROL MATRIX</h2>
+                </div>
+                
+                <div class="buttons-grid">
+                    <button class="control-button" onclick="launchDDOS()">
+                        <div class="btn-icon ddos"><i class="fas fa-network-wired"></i></div>
+                        <div class="btn-label">DDoS ATTACK</div>
+                        <div class="btn-status" id="ddos-status">READY</div>
+                    </button>
+                    
+                    <button class="control-button" onclick="decryptFiles()">
+                        <div class="btn-icon decrypt"><i class="fas fa-unlock-alt"></i></div>
+                        <div class="btn-label">DECRYPT FILES</div>
+                        <div class="btn-status">LOCKED</div>
+                    </button>
+                    
+                    <button class="control-button" onclick="hackSatellite()">
+                        <div class="btn-icon satellite"><i class="fas fa-satellite"></i></div>
+                        <div class="btn-label">SATELLITE HACK</div>
+                        <div class="btn-status">OFFLINE</div>
+                    </button>
+                    
+                    <button class="control-button" onclick="deployWorm()">
+                        <div class="btn-icon worm"><i class="fas fa-bug"></i></div>
+                        <div class="btn-label">DEPLOY WORM</div>
+                        <div class="btn-status">ARMED</div>
+                    </button>
+                    
+                    <button class="control-button" onclick="bypassFirewall()">
+                        <div class="btn-icon firewall"><i class="fas fa-shield-alt"></i></div>
+                        <div class="btn-label">BYPASS FIREWALL</div>
+                        <div class="btn-status">ACTIVE</div>
+                    </button>
+                    
+                    <button class="control-button" onclick="quantumCrack()">
+                        <div class="btn-icon quantum"><i class="fas fa-atom"></i></div>
+                        <div class="btn-label">QUANTUM CRACK</div>
+                        <div class="btn-status">CHARGING</div>
                     </button>
                 </div>
-            </div>
+                
+                <div class="system-metrics">
+                    <div class="panel-title">
+                        <i class="fas fa-chart-line"></i>
+                        <h3>SYSTEM METRICS</h3>
+                    </div>
+                    <div class="metrics-grid">
+                        <div class="metric-item">
+                            <div class="metric-value gradient-text" id="cpu-load">87%</div>
+                            <div class="metric-label">CPU LOAD</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-value gradient-text" id="encryption-level">64%</div>
+                            <div class="metric-label">ENCRYPTION</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-value gradient-text" id="hack-level">23%</div>
+                            <div class="metric-label">HACK LEVEL</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-value gradient-text" id="quantum-stability">91%</div>
+                            <div class="metric-label">STABILITY</div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+            
+            <!-- Telegram Bot панель -->
+            <section class="bot-panel">
+                <div class="bot-header">
+                    <div class="bot-title">
+                        <i class="fab fa-telegram"></i>
+                        <h2>TELEGRAM BOT CONTROL</h2>
+                    </div>
+                    <div class="bot-stats">
+                        <div class="stat-item">
+                            <div class="stat-value" id="bot-status">OFFLINE</div>
+                            <div class="stat-label">STATUS</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="groups-count">0</div>
+                            <div class="stat-label">GROUPS</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="messages-sent">0</div>
+                            <div class="stat-label">MESSAGES</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bot-controls">
+                    <button class="bot-btn" onclick="botCheckStatus()">
+                        <i class="fas fa-heartbeat"></i>
+                        <span>CHECK STATUS</span>
+                    </button>
+                    <button class="bot-btn" onclick="botSendTest()">
+                        <i class="fas fa-vial"></i>
+                        <span>TEST BOT</span>
+                    </button>
+                    <button class="bot-btn" onclick="botSendJoke()">
+                        <i class="fas fa-laugh"></i>
+                        <span>SEND JOKE</span>
+                    </button>
+                    <button class="bot-btn" onclick="botSendToAll()">
+                        <i class="fas fa-broadcast-tower"></i>
+                        <span>BROADCAST</span>
+                    </button>
+                </div>
+                
+                <!-- Управление группами -->
+                <div class="groups-management">
+                    <div class="panel-title">
+                        <i class="fas fa-users"></i>
+                        <h3>GROUP MANAGEMENT</h3>
+                    </div>
+                    <div class="group-selector-container">
+                        <select id="groupSelector" class="form-control" onchange="updateCurrentGroupInfo()">
+                            <option value="">Выберите группу...</option>
+                        </select>
+                        <button class="btn" onclick="sendMessage()">
+                            <i class="fas fa-paper-plane"></i> Отправить
+                        </button>
+                    </div>
+                    <div class="current-group-info" id="currentGroupInfo">
+                        📢 Группа не выбрана
+                    </div>
+                    <div class="quick-actions">
+                        <button class="quick-btn" onclick="testCurrentGroup()">
+                            <i class="fas fa-vial"></i> Тест группы
+                        </button>
+                        <button class="quick-btn" onclick="loadGroups()">
+                            <i class="fas fa-sync-alt"></i> Обновить
+                        </button>
+                        <button class="quick-btn" onclick="showAddGroupForm()">
+                            <i class="fas fa-plus"></i> Добавить группу
+                        </button>
+                    </div>
+                </div>
+            </section>
         </div>
-        
-        <!-- Информация о текущей группе -->
-        <div class="card" style="grid-column: 1 / -1;">
-            <h2><i class="fas fa-info-circle"></i> Текущая группа</h2>
-            <div class="current-group-info" id="currentGroupInfo">
-                📢 Выбрана группа: Основная (-1003835999605)
-            </div>
-            <button class="test-group-btn" onclick="testCurrentGroup()" style="margin-top: 15px;">
-                <i class="fas fa-vial"></i> Тест в выбранную группу
-            </button>
-        </div>
-        
-        <footer>
-            <p>JARVIS Bot Control Panel © 2024 | Сохранено групп: <span id="groupsCount">1</span></p>
-        </footer>
     </div>
 
     <script src="script.js"></script>

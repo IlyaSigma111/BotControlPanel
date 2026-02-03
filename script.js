@@ -1,415 +1,208 @@
-// ===== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====
-const ACCESS_CODE = "JojoTop1";
+// ===== КОНСТАНТЫ И ПЕРЕМЕННЫЕ =====
 const BOT_TOKEN = '8280726925:AAHP4QQrGZlr2K09CFs0kkxAsCQFKEnuCHM';
 const API_URL = `https://api.telegram.org/bot${BOT_TOKEN}`;
 
-let attemptsLeft = 3;
-let isLoggedIn = false;
-let sessionTimer = 0;
-let botOnline = false;
-let hackLevel = 23;
 let groups = [];
-let currentGroupId = '-1003835999605';
+let botOnline = false;
+let messagesSent = 0;
+let sessionStart = new Date();
+let logs = [];
+let currentSettings = {};
 
-// ===== СИСТЕМА ЛОГИНА =====
+// ===== ИНИЦИАЛИЗАЦИЯ =====
 document.addEventListener('DOMContentLoaded', function() {
-    console.log("NeoCascade Terminal загружен");
-    updateAttemptsDisplay();
+    console.log('NeoCascade Bot Control загружен');
     
-    // Проверяем сохранённую сессию
-    const savedLogin = localStorage.getItem('neocascade_logged_in');
-    if (savedLogin === 'true') {
-        loginSuccess();
-    }
-    
-    // Обработчик Enter для поля пароля
-    document.getElementById('accessCode').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            checkAccessCode();
-        }
-    });
-});
-
-function checkAccessCode() {
-    const codeInput = document.getElementById('accessCode').value.trim();
-    const errorElement = document.getElementById('loginError');
-    
-    if (!codeInput) {
-        showLoginError("⚠️ Введите код доступа");
-        shakeLoginBox();
-        return;
-    }
-    
-    if (codeInput === ACCESS_CODE) {
-        loginSuccess();
-    } else {
-        attemptsLeft--;
-        updateAttemptsDisplay();
-        
-        if (attemptsLeft <= 0) {
-            showLoginError("❌ Доступ заблокирован на 5 минут");
-            disableLogin();
-            
-            setTimeout(() => {
-                attemptsLeft = 3;
-                updateAttemptsDisplay();
-                enableLogin();
-                errorElement.style.display = "none";
-            }, 300000);
-        } else {
-            showLoginError(`❌ Неверный код! Осталось попыток: ${attemptsLeft}`);
-            shakeLoginBox();
-        }
-    }
-}
-
-function showLoginError(message) {
-    const errorElement = document.getElementById('loginError');
-    errorElement.textContent = message;
-    errorElement.style.display = "block";
-    
-    setTimeout(() => {
-        errorElement.style.display = "none";
-    }, 3000);
-}
-
-function shakeLoginBox() {
-    const loginBox = document.querySelector('.login-box');
-    loginBox.style.animation = 'shake 0.5s';
-    setTimeout(() => {
-        loginBox.style.animation = '';
-    }, 500);
-}
-
-// Анимация shake
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes shake {
-        0%, 100% { transform: translateX(0); }
-        10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-        20%, 40%, 60%, 80% { transform: translateX(5px); }
-    }
-`;
-document.head.appendChild(style);
-
-function updateAttemptsDisplay() {
-    const attemptsElement = document.getElementById('attemptsCount');
-    if (attemptsElement) {
-        attemptsElement.textContent = attemptsLeft;
-    }
-}
-
-function disableLogin() {
-    document.getElementById('accessCode').disabled = true;
-    document.querySelector('.login-btn').disabled = true;
-    document.querySelector('.ghost-btn').disabled = true;
-}
-
-function enableLogin() {
-    document.getElementById('accessCode').disabled = false;
-    document.querySelector('.login-btn').disabled = false;
-    document.querySelector('.ghost-btn').disabled = false;
-}
-
-function loginSuccess() {
-    isLoggedIn = true;
-    localStorage.setItem('neocascade_logged_in', 'true');
-    
-    // Скрываем экран логина, показываем основной интерфейс
-    document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('mainContent').style.display = 'block';
-    
-    // Запускаем инициализацию
-    initializeSystem();
-    
-    // Очищаем поле пароля
-    document.getElementById('accessCode').value = '';
-    
-    showNotification('✅ Доступ предоставлен. Добро пожаловать в NeoCascade.', 'success');
-}
-
-function phantomAccess() {
-    localStorage.setItem('neocascade_logged_in', 'true');
-    isLoggedIn = true;
-    
-    document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('mainContent').style.display = 'block';
-    
-    initializeSystem();
-    showNotification('👻 Фантомный доступ активирован. Отслеживание невозможно.', 'info');
-    document.getElementById('accessCode').value = '';
-}
-
-function logout() {
-    isLoggedIn = false;
-    localStorage.removeItem('neocascade_logged_in');
-    location.reload();
-}
-
-// ===== ИНИЦИАЛИЗАЦИЯ СИСТЕМЫ =====
-function initializeSystem() {
-    // Запускаем таймер сессии
-    startSessionTimer();
-    
-    // Инициализируем группы
-    initializeGroups();
-    
-    // Запускаем обновление метрик
-    updateMetrics();
+    // Загружаем данные из localStorage
+    loadGroups();
+    loadSettings();
+    loadLogs();
+    loadStats();
     
     // Проверяем статус бота
-    botCheckStatus();
+    checkBotStatus();
     
-    // Эффект печатания статуса
-    typeWriterEffect('statusText', 'SYSTEM ONLINE');
-}
-
-function startSessionTimer() {
-    setInterval(() => {
-        sessionTimer++;
-        const minutes = Math.floor(sessionTimer / 60).toString().padStart(2, '0');
-        const seconds = (sessionTimer % 60).toString().padStart(2, '0');
-        document.getElementById('sessionTimer').textContent = `${minutes}:${seconds}`;
-    }, 1000);
-}
-
-function typeWriterEffect(elementId, text) {
-    const element = document.getElementById(elementId);
-    element.textContent = '';
+    // Запускаем таймеры
+    updateUptime();
+    setInterval(updateUptime, 1000);
+    setInterval(updateSessionTime, 1000);
     
-    let i = 0;
-    const typeInterval = setInterval(() => {
-        if (i < text.length) {
-            element.textContent += text.charAt(i);
-            i++;
-        } else {
-            clearInterval(typeInterval);
-        }
-    }, 50);
-}
-
-// ===== СИСТЕМА ГРУПП =====
-function initializeGroups() {
-    const savedGroups = localStorage.getItem('neocascade_groups');
+    // Инициализируем UI
+    updateUI();
     
-    if (savedGroups) {
-        try {
-            groups = JSON.parse(savedGroups);
-        } catch (e) {
-            console.error("Ошибка загрузки групп:", e);
-            createDefaultGroups();
-        }
-    } else {
-        createDefaultGroups();
+    // Добавляем первый лог
+    addLog('Система запущена', 'info');
+});
+
+// ===== ЗАГРУЗКА ДАННЫХ =====
+function loadGroups() {
+    try {
+        const saved = localStorage.getItem('neocascade_groups');
+        groups = saved ? JSON.parse(saved) : createDefaultGroups();
+    } catch (e) {
+        console.error('Ошибка загрузки групп:', e);
+        groups = createDefaultGroups();
     }
-    
-    updateGroupSelector();
-    updateGroupsCount();
+    updateGroupsUI();
 }
 
 function createDefaultGroups() {
-    groups = [{
+    const defaultGroups = [{
         id: '-1003835999605',
         name: 'Основная группа',
-        added: new Date().toLocaleDateString('ru-RU'),
+        added: new Date().toLocaleDateString(),
         messagesSent: 0,
         lastUsed: null
     }];
     saveGroups();
+    return defaultGroups;
 }
 
+function loadSettings() {
+    currentSettings = JSON.parse(localStorage.getItem('neocascade_settings') || '{}');
+    if (!currentSettings.mode) currentSettings.mode = 'normal';
+    document.getElementById('botMode').value = currentSettings.mode;
+}
+
+function loadLogs() {
+    logs = JSON.parse(localStorage.getItem('neocascade_logs') || '[]');
+    updateLogsUI();
+}
+
+function loadStats() {
+    messagesSent = parseInt(localStorage.getItem('messages_sent') || '0');
+    document.getElementById('messagesSent').textContent = messagesSent;
+}
+
+// ===== СОХРАНЕНИЕ ДАННЫХ =====
 function saveGroups() {
     localStorage.setItem('neocascade_groups', JSON.stringify(groups));
+    updateGroupsUI();
 }
 
-function updateGroupSelector() {
+function saveSettings() {
+    currentSettings.mode = document.getElementById('botMode').value;
+    localStorage.setItem('neocascade_settings', JSON.stringify(currentSettings));
+    addLog('Настройки сохранены', 'success');
+    showStatusMessage('Настройки сохранены', 'success');
+}
+
+function saveLogs() {
+    localStorage.setItem('neocascade_logs', JSON.stringify(logs.slice(-100))); // Храним только последние 100 логов
+}
+
+// ===== ОБНОВЛЕНИЕ UI =====
+function updateUI() {
+    document.getElementById('groupsCount').textContent = groups.length;
+    document.getElementById('groupsBadge').textContent = groups.length;
+    document.getElementById('groupsInMemory').textContent = groups.length;
+    document.getElementById('logsCount').textContent = logs.length;
+}
+
+function updateGroupsUI() {
     const selector = document.getElementById('groupSelector');
-    if (!selector) return;
+    const list = document.getElementById('groupsList');
     
+    // Обновляем селектор
     selector.innerHTML = '<option value="">Выберите группу...</option>';
-    
     groups.forEach(group => {
         const option = document.createElement('option');
         option.value = group.id;
         option.textContent = `${group.name} (${group.id})`;
-        if (group.id === currentGroupId) {
-            option.selected = true;
-        }
         selector.appendChild(option);
     });
     
-    updateCurrentGroupInfo();
-}
-
-function updateGroupsCount() {
-    document.getElementById('groups-count').textContent = groups.length;
-}
-
-function updateCurrentGroupInfo() {
-    const selector = document.getElementById('groupSelector');
-    const infoElement = document.getElementById('currentGroupInfo');
-    
-    if (!selector || !infoElement) return;
-    
-    const selectedGroupId = selector.value;
-    const group = groups.find(g => g.id === selectedGroupId);
-    
-    if (group) {
-        infoElement.innerHTML = `📢 Выбрана группа: ${group.name} (${group.id})`;
-        currentGroupId = group.id;
+    // Обновляем список
+    list.innerHTML = '';
+    if (groups.length === 0) {
+        list.innerHTML = `
+            <div style="text-align: center; padding: 40px 20px; color: var(--gray-400);">
+                <i class="fas fa-inbox fa-2x" style="margin-bottom: 12px;"></i>
+                <p>Нет сохранённых групп</p>
+                <p style="font-size: 0.9rem; margin-top: 8px;">Добавьте первую группу</p>
+            </div>
+        `;
+        return;
     }
-}
-
-function testCurrentGroup() {
-    const selector = document.getElementById('groupSelector');
-    if (selector && selector.value) {
-        showNotification(`Тестирую группу ${selector.value}...`, 'info');
-        setTimeout(() => {
-            showNotification('✅ Группа активна!', 'success');
-        }, 1500);
-    }
-}
-
-function loadGroups() {
-    initializeGroups();
-    showNotification(`Список групп обновлен (${groups.length})`, 'success');
-}
-
-function showAddGroupForm() {
-    const groupId = prompt('Введите ID группы (например: -1001234567890):');
-    if (!groupId) return;
     
-    const groupName = prompt('Введите название группы:') || `Группа ${groups.length + 1}`;
-    
-    const newGroup = {
-        id: groupId,
-        name: groupName,
-        added: new Date().toLocaleDateString('ru-RU'),
-        messagesSent: 0,
-        lastUsed: null
-    };
-    
-    groups.push(newGroup);
-    saveGroups();
-    updateGroupSelector();
-    updateGroupsCount();
-    
-    showNotification(`✅ Группа "${groupName}" добавлена!`, 'success');
-}
-
-// ===== ХАКЕРСКИЕ ЭФФЕКТЫ =====
-function glitchEffect(elementId) {
-    const element = document.getElementById(elementId);
-    element.style.animation = 'shake 0.3s';
-    setTimeout(() => {
-        element.style.animation = '';
-    }, 300);
-}
-
-function updateMetrics() {
-    // Случайные метрики для реализма
-    document.getElementById('cpu-load').textContent = 
-        Math.floor(Math.random() * 30 + 70) + '%';
-    document.getElementById('encryption-level').textContent = 
-        Math.floor(Math.random() * 40 + 60) + '%';
-    document.getElementById('hack-level').textContent = 
-        Math.floor(hackLevel) + '%';
-    document.getElementById('quantum-stability').textContent = 
-        Math.floor(Math.random() * 20 + 80) + '%';
-    
-    // Увеличиваем уровень взлома
-    hackLevel += Math.random() * 0.5;
-    if (hackLevel > 100) hackLevel = 23;
-    
-    setTimeout(updateMetrics, 3000);
-}
-
-function compileCode() {
-    glitchEffect('statusText');
-    showNotification('КОМПИЛЯЦИЯ КВАНТОВОГО КОДА...', 'info');
-    
-    const status = document.getElementById('statusText');
-    status.textContent = 'COMPILATION IN PROGRESS';
-    status.style.color = 'var(--neon-blue)';
-    
-    setTimeout(() => {
-        status.textContent = 'COMPILATION SUCCESS';
-        status.style.color = 'var(--neon-green)';
-        showNotification('✅ Код скомпилирован успешно!', 'success');
-        hackLevel += 5;
-    }, 2000);
-}
-
-function executeHack() {
-    glitchEffect('statusText');
-    showNotification('ЗАПУСК КВАНТОВОГО ВЗЛОМА...', 'warning');
-    
-    const buttons = document.querySelectorAll('.control-button');
-    buttons.forEach(btn => {
-        btn.style.animation = 'shake 0.5s';
+    groups.forEach((group, index) => {
+        const item = document.createElement('div');
+        item.className = 'group-item';
+        item.innerHTML = `
+            <div class="group-info">
+                <div class="group-name">${group.name}</div>
+                <div class="group-id">${group.id}</div>
+                <div class="group-stats">
+                    <span>📅 ${group.added}</span>
+                    <span>✉️ ${group.messagesSent || 0}</span>
+                    ${group.lastUsed ? `<span>🕒 ${group.lastUsed.split(' ')[1]}</span>` : ''}
+                </div>
+            </div>
+            <div class="group-actions">
+                <button class="group-btn select" onclick="selectGroup('${group.id}')" title="Выбрать">
+                    <i class="fas fa-check"></i>
+                </button>
+                <button class="group-btn delete" onclick="deleteGroup(${index})" title="Удалить">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        `;
+        list.appendChild(item);
     });
     
-    setTimeout(() => {
-        buttons.forEach(btn => {
-            btn.style.animation = '';
-        });
-        showNotification('⚡ Квантовый взлом запущен!', 'success');
-        hackLevel += 15;
-    }, 1500);
+    updateUI();
 }
 
-function executeQuickCommand() {
-    const command = document.getElementById('quickCommand').value;
-    if (!command.trim()) return;
+function updateLogsUI() {
+    const container = document.getElementById('logsContainer');
+    container.innerHTML = '';
     
-    showNotification(`ВЫПОЛНЕНИЕ: ${command}`, 'info');
-    document.getElementById('quickCommand').value = '';
+    // Показываем только последние 10 логов
+    const recentLogs = logs.slice(-10).reverse();
     
-    setTimeout(() => {
-        const responses = [
-            'Команда выполнена с 87% успехом',
-            'Квантовый процессор отвечает',
-            'Обход брандмауэра в процессе',
-            'Поток данных зашифрован',
-            'Уровень доступа повышен'
-        ];
-        showNotification(`✅ ${responses[Math.floor(Math.random() * responses.length)]}`, 'success');
-        hackLevel += 3;
-    }, 1000);
+    if (recentLogs.length === 0) {
+        container.innerHTML = '<div class="log-entry text-muted">Логов нет</div>';
+        return;
+    }
+    
+    recentLogs.forEach(log => {
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+        const time = new Date(log.timestamp).toLocaleTimeString();
+        entry.innerHTML = `
+            <span class="log-time">[${time}]</span>
+            <span class="log-message">${log.message}</span>
+        `;
+        container.appendChild(entry);
+    });
 }
 
-function launchDDOS() {
-    const status = document.getElementById('ddos-status');
-    status.textContent = 'АТАКА';
-    status.style.background = 'rgba(255, 42, 109, 0.3)';
+// ===== ЛОГИРОВАНИЕ =====
+function addLog(message, type = 'info') {
+    const logEntry = {
+        timestamp: new Date().toISOString(),
+        message: message,
+        type: type
+    };
     
-    showNotification('🚀 Запуск DDoS атаки...', 'warning');
-    
-    setTimeout(() => {
-        status.textContent = 'ЗАВЕРШЕНО';
-        status.style.background = 'rgba(0, 255, 157, 0.3)';
-        showNotification('✅ DDoS атака завершена!', 'success');
-        hackLevel += 8;
-    }, 3000);
+    logs.push(logEntry);
+    updateLogsUI();
+    saveLogs();
+    updateUI();
 }
 
-function quantumCrack() {
-    showNotification('⚛️ Инициализация квантового взлома...', 'info');
-    
-    let charge = 0;
-    const interval = setInterval(() => {
-        charge += 10;
-        if (charge >= 100) {
-            clearInterval(interval);
-            showNotification('✅ Квантовое шифрование взломано!', 'success');
-            hackLevel += 20;
-        }
-    }, 200);
+function clearLogs() {
+    if (confirm('Очистить все логи?')) {
+        logs = [];
+        saveLogs();
+        updateLogsUI();
+        addLog('Логи очищены', 'warning');
+    }
 }
 
-// ===== TELEGRAM BOT ФУНКЦИИ =====
-async function botCheckStatus() {
-    showNotification('Проверка статуса бота...', 'info');
+// ===== TELEGRAM API ФУНКЦИИ =====
+async function checkBotStatus() {
+    const statusBadge = document.getElementById('botStatus');
     
     try {
         const response = await fetch(`${API_URL}/getMe`);
@@ -417,104 +210,54 @@ async function botCheckStatus() {
         
         if (data.ok) {
             botOnline = true;
-            document.getElementById('bot-status').textContent = 'ONLINE';
-            document.getElementById('bot-status').style.color = 'var(--neon-green)';
-            showNotification(`✅ Бот онлайн: ${data.result.first_name}`, 'success');
+            statusBadge.className = 'status-badge status-online';
+            statusBadge.innerHTML = `
+                <div class="status-dot online pulse"></div>
+                <span>Бот онлайн: ${data.result.first_name}</span>
+            `;
+            document.getElementById('botUsers').textContent = data.result.id;
+            addLog(`Бот подключён: ${data.result.first_name}`, 'success');
         } else {
             throw new Error(data.description);
         }
     } catch (error) {
         botOnline = false;
-        document.getElementById('bot-status').textContent = 'OFFLINE';
-        document.getElementById('bot-status').style.color = 'var(--neon-red)';
-        showNotification(`❌ Бот офлайн: ${error.message}`, 'error');
+        statusBadge.className = 'status-badge status-offline';
+        statusBadge.innerHTML = `
+            <div class="status-dot offline"></div>
+            <span>Бот офлайн: ${error.message}</span>
+        `;
+        addLog(`Ошибка подключения: ${error.message}`, 'error');
     }
-}
-
-async function botSendTest() {
-    if (!botOnline) {
-        showNotification('Бот офлайн. Сначала проверьте статус.', 'error');
-        return;
-    }
-    
-    const selector = document.getElementById('groupSelector');
-    if (!selector || !selector.value) {
-        showNotification('Выберите группу для отправки', 'error');
-        return;
-    }
-    
-    showNotification('Отправка тестового сообщения...', 'info');
-    
-    try {
-        const response = await fetch(`${API_URL}/sendMessage`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                chat_id: selector.value,
-                text: '🟢 Тестовое сообщение от NeoCascade Terminal',
-                parse_mode: 'HTML'
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (data.ok) {
-            // Обновляем статистику
-            const messagesElement = document.getElementById('messages-sent');
-            messagesElement.textContent = parseInt(messagesElement.textContent) + 1;
-            
-            // Обновляем статистику группы
-            const group = groups.find(g => g.id === selector.value);
-            if (group) {
-                group.messagesSent = (group.messagesSent || 0) + 1;
-                group.lastUsed = new Date().toLocaleString('ru-RU');
-                saveGroups();
-            }
-            
-            showNotification('✅ Тестовое сообщение отправлено!', 'success');
-        } else {
-            showNotification(`❌ Ошибка: ${data.description}`, 'error');
-        }
-    } catch (error) {
-        showNotification('❌ Ошибка отправки', 'error');
-    }
-}
-
-function botSendJoke() {
-    const jokes = [
-        "Почему программист умер в душе? На бутылке с шампунем было написано: нанести, смыть, повторить.",
-        "Сколько программистов нужно, чтобы вкрутить лампочку? Ни одного, это hardware проблема!",
-        "Почему боится быть в темноте? Потому что там нет света",
-        "Что сказал один бит другому? Пока не встретимся!"
-    ];
-    
-    const joke = jokes[Math.floor(Math.random() * jokes.length)];
-    showNotification(`Шутка: ${joke}`, 'info');
 }
 
 async function sendMessage() {
     if (!botOnline) {
-        showNotification('Бот офлайн. Сначала проверьте статус.', 'error');
+        showStatusMessage('Бот офлайн. Проверьте подключение.', 'error');
         return;
     }
     
-    const selector = document.getElementById('groupSelector');
-    if (!selector || !selector.value) {
-        showNotification('Выберите группу для отправки', 'error');
+    const groupId = document.getElementById('groupSelector').value;
+    const message = document.getElementById('messageText').value.trim();
+    
+    if (!groupId) {
+        showStatusMessage('Выберите группу для отправки', 'warning');
         return;
     }
     
-    const message = prompt('Введите сообщение для отправки:');
-    if (!message) return;
+    if (!message) {
+        showStatusMessage('Введите сообщение', 'warning');
+        return;
+    }
     
-    showNotification('Отправка сообщения...', 'info');
+    showStatusMessage('<i class="fas fa-spinner fa-spin"></i> Отправка...', 'info');
     
     try {
         const response = await fetch(`${API_URL}/sendMessage`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
-                chat_id: selector.value,
+                chat_id: groupId,
                 text: message,
                 parse_mode: 'HTML'
             })
@@ -524,85 +267,445 @@ async function sendMessage() {
         
         if (data.ok) {
             // Обновляем статистику
-            const messagesElement = document.getElementById('messages-sent');
-            messagesElement.textContent = parseInt(messagesElement.textContent) + 1;
+            messagesSent++;
+            localStorage.setItem('messages_sent', messagesSent.toString());
+            document.getElementById('messagesSent').textContent = messagesSent;
             
-            showNotification('✅ Сообщение отправлено!', 'success');
+            // Обновляем группу
+            const group = groups.find(g => g.id === groupId);
+            if (group) {
+                group.messagesSent = (group.messagesSent || 0) + 1;
+                group.lastUsed = new Date().toLocaleString();
+                saveGroups();
+            }
+            
+            showStatusMessage('<i class="fas fa-check-circle"></i> Сообщение отправлено!', 'success');
+            addLog(`Сообщение отправлено в ${groupId}`, 'success');
+            
+            // Очищаем поле
+            document.getElementById('messageText').value = '';
         } else {
-            showNotification(`❌ Ошибка: ${data.description}`, 'error');
+            showStatusMessage(`<i class="fas fa-times-circle"></i> Ошибка: ${data.description}`, 'error');
+            addLog(`Ошибка отправки: ${data.description}`, 'error');
         }
     } catch (error) {
-        showNotification('❌ Ошибка отправки', 'error');
+        showStatusMessage('<i class="fas fa-times-circle"></i> Ошибка сети', 'error');
+        addLog('Ошибка сети при отправке', 'error');
     }
 }
 
-// ===== УТИЛИТЫ =====
-function showNotification(message, type = 'info') {
-    const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
-    notification.textContent = message;
-    
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s';
-        setTimeout(() => {
-            document.body.removeChild(notification);
-        }, 300);
-    }, 3000);
-}
-
-// Остальные функции хакерских кнопок
-function decryptFiles() {
-    showNotification('🔄 Дешифровка файлов...', 'info');
-    setTimeout(() => {
-        showNotification('✅ Файлы дешифрованы!', 'success');
-        hackLevel += 10;
-    }, 2000);
-}
-
-function hackSatellite() {
-    showNotification('🛰️ Взлом спутниковой связи...', 'warning');
-    setTimeout(() => {
-        showNotification('✅ Спутник захвачен!', 'success');
-        hackLevel += 25;
-    }, 3000);
-}
-
-function deployWorm() {
-    showNotification('🐛 Запуск сетевого червя...', 'warning');
-    setTimeout(() => {
-        showNotification('✅ Червь активирован в сети!', 'success');
-        hackLevel += 30;
-    }, 2500);
-}
-
-function bypassFirewall() {
-    showNotification('🛡️ Обход брандмауэра...', 'info');
-    setTimeout(() => {
-        showNotification('✅ Брандмауэр обойден!', 'success');
-        hackLevel += 12;
-    }, 1800);
-}
-
-function botSendToAll() {
+async function testMessage() {
     if (!botOnline) {
-        showNotification('Бот офлайн. Сначала проверьте статус.', 'error');
+        showStatusMessage('Бот офлайн', 'error');
+        return;
+    }
+    
+    const groupId = document.getElementById('groupSelector').value;
+    
+    if (!groupId) {
+        showStatusMessage('Выберите группу', 'warning');
+        return;
+    }
+    
+    showStatusMessage('<i class="fas fa-spinner fa-spin"></i> Тестирование...', 'info');
+    
+    try {
+        const response = await fetch(`${API_URL}/sendMessage`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                chat_id: groupId,
+                text: '✅ <b>Тестовое сообщение от NeoCascade Bot</b>\n\nСтатус: Работает нормально!',
+                parse_mode: 'HTML'
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.ok) {
+            showStatusMessage('<i class="fas fa-check-circle"></i> Тест успешен!', 'success');
+            addLog(`Тест отправлен в ${groupId}`, 'success');
+        } else {
+            showStatusMessage(`<i class="fas fa-times-circle"></i> ${data.description}`, 'error');
+        }
+    } catch (error) {
+        showStatusMessage('<i class="fas fa-times-circle"></i> Ошибка сети', 'error');
+    }
+}
+
+// ===== УПРАВЛЕНИЕ ГРУППАМИ =====
+function addGroup() {
+    const groupId = document.getElementById('newGroupId').value.trim();
+    const groupName = document.getElementById('newGroupName').value.trim();
+    
+    if (!groupId) {
+        showStatusMessage('Введите ID группы', 'warning');
+        return;
+    }
+    
+    if (!groupId.startsWith('-100') && !/^-?\d+$/.test(groupId)) {
+        showStatusMessage('Неверный формат ID', 'error');
+        return;
+    }
+    
+    if (groups.some(g => g.id === groupId)) {
+        showStatusMessage('Группа уже существует', 'warning');
+        return;
+    }
+    
+    const newGroup = {
+        id: groupId,
+        name: groupName || `Группа ${groups.length + 1}`,
+        added: new Date().toLocaleDateString(),
+        messagesSent: 0,
+        lastUsed: null
+    };
+    
+    groups.push(newGroup);
+    saveGroups();
+    
+    // Очищаем поля
+    document.getElementById('newGroupId').value = '';
+    document.getElementById('newGroupName').value = '';
+    
+    showStatusMessage(`Группа добавлена: ${newGroup.name}`, 'success');
+    addLog(`Добавлена группа: ${newGroup.name} (${groupId})`, 'success');
+}
+
+function deleteGroup(index) {
+    const group = groups[index];
+    if (!confirm(`Удалить группу "${group.name}"?`)) return;
+    
+    groups.splice(index, 1);
+    saveGroups();
+    showStatusMessage(`Группа удалена: ${group.name}`, 'success');
+    addLog(`Удалена группа: ${group.name}`, 'warning');
+}
+
+function selectGroup(groupId) {
+    document.getElementById('groupSelector').value = groupId;
+    showStatusMessage(`Выбрана группа: ${groupId}`, 'info');
+}
+
+function refreshGroups() {
+    loadGroups();
+    showStatusMessage('Список групп обновлён', 'success');
+    addLog('Список групп обновлён', 'info');
+}
+
+function exportGroups() {
+    const dataStr = JSON.stringify(groups, null, 2);
+    const dataBlob = new Blob([dataStr], {type: 'application/json'});
+    
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(dataBlob);
+    link.download = `neocascade_groups_${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    
+    showStatusMessage('Группы экспортированы в JSON', 'success');
+    addLog('Экспорт групп в JSON', 'info');
+}
+
+function clearAllGroups() {
+    if (!confirm('Удалить ВСЕ группы?')) return;
+    
+    groups = [];
+    saveGroups();
+    showStatusMessage('Все группы удалены', 'warning');
+    addLog('Все группы удалены', 'warning');
+}
+
+// ===== БЫСТРЫЕ ДЕЙСТВИЯ =====
+async function sendJoke() {
+    if (!botOnline) {
+        showStatusMessage('Бот офлайн', 'error');
+        return;
+    }
+    
+    const groupId = document.getElementById('groupSelector').value;
+    if (!groupId) {
+        showStatusMessage('Сначала выберите группу', 'warning');
+        return;
+    }
+    
+    const jokes = [
+        "Почему программист умер в душе? На бутылке с шампунем было написано: нанести, смыть, повторить.",
+        "Сколько программистов нужно, чтобы вкрутить лампочку? Ни одного, это hardware проблема!",
+        "Что сказал один бит другому? Пока не встретимся!",
+        "Почему Python не может подружиться с Java? Потому что у них разные типы!",
+        "Как программист делает утреннюю зарядку? git pull, git push, git commit.",
+        "Что сказал массив linked list'у? У тебя слишком много указателей!",
+        "Почему боится быть в темноте? Потому что там нет света"
+    ];
+    
+    const joke = jokes[Math.floor(Math.random() * jokes.length)];
+    
+    try {
+        const response = await fetch(`${API_URL}/sendMessage`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                chat_id: groupId,
+                text: `🎭 <b>Шутка программиста:</b>\n\n${joke}`,
+                parse_mode: 'HTML'
+            })
+        });
+        
+        if (response.ok) {
+            showStatusMessage('Шутка отправлена!', 'success');
+            messagesSent++;
+            updateStats();
+            addLog(`Отправлена шутка в ${groupId}`, 'success');
+        }
+    } catch (error) {
+        showStatusMessage('Ошибка отправки шутки', 'error');
+    }
+}
+
+async function sendPoll() {
+    if (!botOnline) return;
+    
+    const groupId = document.getElementById('groupSelector').value;
+    if (!groupId) {
+        showStatusMessage('Выберите группу', 'warning');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_URL}/sendPoll`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                chat_id: groupId,
+                question: 'Как у вас дела?',
+                options: ['Отлично! 👍', 'Нормально 👌', 'Могло быть лучше 🤔', 'Не очень 😕'],
+                is_anonymous: false
+            })
+        });
+        
+        if (response.ok) {
+            showStatusMessage('Опрос создан!', 'success');
+            messagesSent++;
+            updateStats();
+            addLog(`Создан опрос в ${groupId}`, 'success');
+        }
+    } catch (error) {
+        showStatusMessage('Ошибка создания опроса', 'error');
+    }
+}
+
+async function sendToAllGroups() {
+    if (!botOnline) {
+        showStatusMessage('Бот офлайн', 'error');
         return;
     }
     
     if (groups.length === 0) {
-        showNotification('Нет сохраненных групп', 'error');
+        showStatusMessage('Нет групп для рассылки', 'warning');
         return;
     }
     
     const message = prompt('Введите сообщение для рассылки:');
     if (!message) return;
     
-    showNotification(`Рассылка в ${groups.length} групп...`, 'info');
+    showStatusMessage(`<i class="fas fa-spinner fa-spin"></i> Рассылка в ${groups.length} групп...`, 'info');
     
-    // Эмуляция рассылки
-    setTimeout(() => {
-        showNotification(`✅ Сообщение отправлено в ${groups.length} групп`, 'success');
-    }, 2000);
+    let successCount = 0;
+    const errors = [];
+    
+    for (const [index, group] of groups.entries()) {
+        try {
+            const response = await fetch(`${API_URL}/sendMessage`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    chat_id: group.id,
+                    text: message,
+                    parse_mode: 'HTML'
+                })
+            });
+            
+            if (response.ok) {
+                successCount++;
+                group.messagesSent = (group.messagesSent || 0) + 1;
+                group.lastUsed = new Date().toLocaleString();
+            } else {
+                errors.push(group.id);
+            }
+        } catch (error) {
+            errors.push(group.id);
+        }
+    }
+    
+    saveGroups();
+    messagesSent += successCount;
+    updateStats();
+    
+    if (successCount > 0) {
+        showStatusMessage(`Отправлено в ${successCount}/${groups.length} групп`, 'success');
+        addLog(`Рассылка: ${successCount}/${groups.length} успешно`, 'success');
+    } else {
+        showStatusMessage('Не удалось отправить ни в одну группу', 'error');
+    }
+    
+    if (errors.length > 0) {
+        console.log('Ошибки в группах:', errors);
+    }
+}
+
+async function checkAllGroups() {
+    if (!botOnline) {
+        showStatusMessage('Бот офлайн', 'error');
+        return;
+    }
+    
+    if (groups.length === 0) {
+        showStatusMessage('Нет групп для проверки', 'warning');
+        return;
+    }
+    
+    showStatusMessage(`<i class="fas fa-spinner fa-spin"></i> Проверка ${groups.length} групп...`, 'info');
+    
+    let activeCount = 0;
+    
+    for (const group of groups) {
+        try {
+            const response = await fetch(`${API_URL}/getChat`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ chat_id: group.id })
+            });
+            
+            if (response.ok) {
+                activeCount++;
+            }
+        } catch (error) {
+            // Группа недоступна
+        }
+    }
+    
+    showStatusMessage(`Активных групп: ${activeCount}/${groups.length}`, 'success');
+    addLog(`Проверка групп: ${activeCount}/${groups.length} активны`, 'info');
+}
+
+async function getBotInfo() {
+    if (!botOnline) {
+        showStatusMessage('Бот офлайн', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_URL}/getMe`);
+        const data = await response.json();
+        
+        if (data.ok) {
+            const info = `
+<b>Информация о боте:</b>
+ID: ${data.result.id}
+Имя: ${data.result.first_name}
+Юзернейм: @${data.result.username}
+Может читать сообщения: ${data.result.can_read_all_group_messages ? 'Да' : 'Нет'}
+Поддерживает инлайн: ${data.result.supports_inline_queries ? 'Да' : 'Нет'}
+            `;
+            
+            const groupId = document.getElementById('groupSelector').value;
+            if (groupId) {
+                await fetch(`${API_URL}/sendMessage`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        chat_id: groupId,
+                        text: info,
+                        parse_mode: 'HTML'
+                    })
+                });
+            }
+            
+            showStatusMessage('Информация отправлена', 'success');
+            addLog('Запрошена информация о боте', 'info');
+        }
+    } catch (error) {
+        showStatusMessage('Ошибка получения информации', 'error');
+    }
+}
+
+function clearHistory() {
+    if (confirm('Очистить историю сообщений? Счётчик сбросится.')) {
+        messagesSent = 0;
+        localStorage.setItem('messages_sent', '0');
+        updateStats();
+        showStatusMessage('История сообщений очищена', 'success');
+        addLog('История сообщений очищена', 'warning');
+    }
+}
+
+// ===== УТИЛИТЫ =====
+function updateUptime() {
+    const now = new Date();
+    const diff = Math.floor((now - sessionStart) / 1000);
+    const hours = Math.floor(diff / 3600).toString().padStart(2, '0');
+    const minutes = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
+    const seconds = (diff % 60).toString().padStart(2, '0');
+    document.getElementById('uptime').textContent = `${hours}:${minutes}:${seconds}`;
+}
+
+function updateSessionTime() {
+    const now = new Date();
+    const diff = Math.floor((now - sessionStart) / 1000);
+    const hours = Math.floor(diff / 3600).toString().padStart(2, '0');
+    const minutes = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
+    const seconds = (diff % 60).toString().padStart(2, '0');
+    document.getElementById('sessionTime').textContent = `${hours}:${minutes}:${seconds}`;
+}
+
+function updateStats() {
+    document.getElementById('messagesSent').textContent = messagesSent;
+    localStorage.setItem('messages_sent', messagesSent.toString());
+}
+
+function showStatusMessage(message, type = 'info') {
+    const statusDiv = document.getElementById('messageStatus');
+    statusDiv.className = `status-message show ${type}`;
+    statusDiv.innerHTML = message;
+    
+    if (type !== 'info') {
+        setTimeout(() => {
+            statusDiv.className = 'status-message';
+            statusDiv.innerHTML = '';
+        }, 3000);
+    }
+}
+
+function copyToken() {
+    navigator.clipboard.writeText(BOT_TOKEN)
+        .then(() => {
+            showStatusMessage('Токен скопирован в буфер', 'success');
+            addLog('Токен скопирован в буфер', 'info');
+        })
+        .catch(err => {
+            showStatusMessage('Ошибка копирования', 'error');
+        });
+}
+
+function resetAll() {
+    if (confirm('Сбросить ВСЕ настройки, группы и логи? Это действие нельзя отменить.')) {
+        localStorage.clear();
+        location.reload();
+    }
+}
+
+function logout() {
+    if (confirm('Выйти из панели управления?')) {
+        addLog('Пользователь вышел из системы', 'info');
+        setTimeout(() => {
+            // В реальном приложении здесь был бы редирект на страницу логина
+            alert('Выход выполнен. В реальном приложении была бы страница логина.');
+        }, 500);
+    }
+}
+
+// Функция для отправки с картинкой (заглушка)
+function sendWithImage() {
+    showStatusMessage('Функция отправки с картинкой в разработке', 'info');
+    addLog('Попытка отправки с картинкой', 'info');
 }

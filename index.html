@@ -3,438 +3,286 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NEO-CASCADE // QUANTUM HACK TERMINAL</title>
+    <title>NeoCascade Bot Control</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        /* ЛОГИН ЭКРАН */
-        .login-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #0a0a12;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 10000;
-            font-family: 'JetBrains Mono', monospace;
-        }
-        
-        .login-box {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(0, 255, 157, 0.2);
-            border-radius: 20px;
-            padding: 40px;
-            width: 90%;
-            max-width: 400px;
-            text-align: center;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5),
-                        inset 0 0 50px rgba(0, 255, 157, 0.1);
-            animation: pulse 3s infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), inset 0 0 50px rgba(0, 255, 157, 0.1); }
-            50% { box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), inset 0 0 50px rgba(0, 255, 157, 0.2); }
-        }
-        
-        .login-logo {
-            margin-bottom: 30px;
-        }
-        
-        .login-logo i {
-            font-size: 60px;
-            background: linear-gradient(45deg, #00ff9d, #00e5ff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 20px;
-            animation: glow 2s infinite;
-        }
-        
-        .login-logo h1 {
-            font-size: 28px;
-            font-family: 'Orbitron', sans-serif;
-            background: linear-gradient(45deg, #00ff9d, #00e5ff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 10px;
-        }
-        
-        .login-subtitle {
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 14px;
-            letter-spacing: 2px;
-        }
-        
-        #accessCode {
-            width: 100%;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.07);
-            border: 1px solid rgba(0, 229, 255, 0.3);
-            border-radius: 10px;
-            color: white;
-            font-size: 16px;
-            margin-bottom: 20px;
-            font-family: 'JetBrains Mono', monospace;
-            outline: none;
-            transition: all 0.3s;
-        }
-        
-        #accessCode:focus {
-            border-color: #00ff9d;
-            box-shadow: 0 0 15px rgba(0, 255, 157, 0.3);
-        }
-        
-        .login-btn {
-            width: 100%;
-            padding: 15px;
-            background: linear-gradient(45deg, #00ff9d, #00cc88);
-            border: none;
-            border-radius: 10px;
-            color: black;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-bottom: 15px;
-            transition: all 0.3s;
-            font-family: 'Orbitron', sans-serif;
-            letter-spacing: 1px;
-        }
-        
-        .login-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(0, 255, 157, 0.4);
-        }
-        
-        .ghost-btn {
-            width: 100%;
-            padding: 12px;
-            background: transparent;
-            border: 2px solid #b967ff;
-            border-radius: 10px;
-            color: #b967ff;
-            font-size: 14px;
-            cursor: pointer;
-            transition: 0.3s;
-            font-family: 'JetBrains Mono', monospace;
-        }
-        
-        .ghost-btn:hover {
-            background: rgba(185, 103, 255, 0.1);
-        }
-        
-        #loginError {
-            margin-top: 15px;
-            padding: 10px;
-            background: rgba(255, 42, 109, 0.1);
-            border: 1px solid rgba(255, 42, 109, 0.3);
-            border-radius: 8px;
-            color: #ff2a6d;
-            font-size: 14px;
-            display: none;
-        }
-        
-        .attempts {
-            margin-top: 15px;
-            font-size: 14px;
-            color: #ff9900;
-        }
-        
-        .login-footer {
-            margin-top: 25px;
-            padding-top: 20px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            color: rgba(255, 255, 255, 0.4);
-            font-size: 12px;
-        }
-        
-        #mainContent {
-            display: none;
-        }
-    </style>
 </head>
 <body>
-    <!-- ЭКРАН ЛОГИНА -->
-    <div id="loginScreen" class="login-screen">
-        <div class="login-box">
-            <div class="login-logo">
-                <i class="fas fa-terminal"></i>
-                <h1>NEO-CASCADE</h1>
-                <p class="login-subtitle">QUANTUM HACK TERMINAL</p>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fab fa-telegram"></i>
+                </div>
+                <h1 class="logo-text">NeoCascade Bot</h1>
             </div>
-            
-            <input type="password" id="accessCode" placeholder="ВВЕДИТЕ КОД ДОСТУПА" autocomplete="off">
-            
-            <button class="login-btn" onclick="checkAccessCode()">
-                <i class="fas fa-sign-in-alt"></i> ВХОД В СИСТЕМУ
-            </button>
-            
-            <button class="ghost-btn" onclick="phantomAccess()">
-                <i class="fas fa-ghost"></i> ФАНТОМНЫЙ ДОСТУП
-            </button>
-            
-            <div id="loginError"></div>
-            
-            <div class="attempts">
-                ПОПЫТКИ: <span id="attemptsCount">3</span>/3
+            <div id="botStatus" class="status-badge">
+                <div class="status-dot offline"></div>
+                <span>Проверка статуса...</span>
             </div>
-            
-            <div class="login-footer">
-                <p>КОД ДОСТУПА: JojoTop1</p>
+        </header>
+        
+        <!-- Статистика -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="groupsCount">0</div>
+                <div class="stat-label">Групп в базе</div>
             </div>
-        </div>
-    </div>
-    
-    <!-- ОСНОВНОЙ ИНТЕРФЕЙС -->
-    <div id="mainContent">
-        <div class="glass-grid"></div>
-        <div class="floating-balls">
-            <div class="floating-ball ball-1"></div>
-            <div class="floating-ball ball-2"></div>
-            <div class="floating-ball ball-3"></div>
+            <div class="stat-card">
+                <div class="stat-value" id="messagesSent">0</div>
+                <div class="stat-label">Сообщений отправлено</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="botUsers">-</div>
+                <div class="stat-label">Пользователей бота</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="uptime">00:00</div>
+                <div class="stat-label">Время работы</div>
+            </div>
         </div>
         
-        <div class="main-container">
-            <!-- Шапка -->
-            <header class="terminal-header">
-                <div class="logo-section">
-                    <div class="logo">
-                        <div class="logo-icon">
-                            <i class="fas fa-terminal"></i>
-                        </div>
-                        <div>
-                            <h1 class="logo-text">NEO-CASCADE</h1>
-                            <div class="logo-subtitle">quantum hack terminal</div>
-                        </div>
+        <!-- Основная сетка -->
+        <div class="grid">
+            <!-- Карточка отправки сообщений -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">
+                        <i class="fas fa-paper-plane"></i>
                     </div>
-                    <div class="status-indicator">
-                        <div class="status-dot"></div>
-                        <span id="statusText">SYSTEM ONLINE</span>
+                    <div>
+                        <h2 class="card-title">Отправка сообщений</h2>
+                        <p class="card-subtitle">Отправьте сообщение в выбранную группу</p>
                     </div>
                 </div>
-                <div class="session-info">
-                    <div class="session-timer">
-                        <i class="fas fa-clock"></i>
-                        <span id="sessionTimer">00:00</span>
-                    </div>
-                    <button class="btn-logout" onclick="logout()">
-                        <i class="fas fa-sign-out-alt"></i> ВЫХОД
+                
+                <div class="form-group">
+                    <label class="form-label">Выберите группу</label>
+                    <select id="groupSelector" class="form-control">
+                        <option value="">Загружаем группы...</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Сообщение</label>
+                    <textarea id="messageText" class="form-control" 
+                              placeholder="Введите сообщение для отправки..."></textarea>
+                </div>
+                
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="sendMessage()">
+                        <i class="fas fa-paper-plane"></i> Отправить
+                    </button>
+                    <button class="btn btn-secondary" onclick="testMessage()">
+                        <i class="fas fa-vial"></i> Тест
+                    </button>
+                    <button class="btn btn-success" onclick="sendWithImage()">
+                        <i class="fas fa-image"></i> С картинкой
                     </button>
                 </div>
-            </header>
+                
+                <div id="messageStatus" class="status-message">
+                    <!-- Статус отправки -->
+                </div>
+            </div>
             
-            <!-- Главный терминал -->
-            <main class="main-terminal">
-                <div class="terminal-title">
-                    <i class="fas fa-code"></i>
-                    <h2>QUANTUM EDITOR v4.2</h2>
-                </div>
-                
-                <!-- Фейковый редактор кода -->
-                <div class="code-editor">
-                    <div class="editor-header">
-                        <div class="editor-title">
-                            <i class="fas fa-file-code"></i>
-                            <span>neocascade_exploit.js</span>
-                        </div>
-                        <div class="editor-buttons">
-                            <button class="compile-btn" onclick="compileCode()">
-                                <i class="fas fa-play"></i> COMPILE
-                            </button>
-                            <button class="hack-btn" onclick="executeHack()">
-                                <i class="fas fa-skull-crossbones"></i> DEPLOY
-                            </button>
-                        </div>
-                    </div>
-                    <div class="editor-body">
-                        <pre><code class="code-keyword">const</code> <code class="code-function">quantumBypass</code> = () => {
-    <code class="code-keyword">const</code> encryptionKey = <code class="code-function">generateQuantumKey</code>();
-    <code class="code-keyword">const</code> backdoor = <code class="code-function">injectPayload</code>(encryptionKey);
-    <code class="code-keyword">return</code> backdoor;
-};
-
-<code class="code-keyword">async function</code> <code class="code-function">initiateNeoCascadeProtocol</code>() {
-    <code class="code-function">console</code>.<code class="code-function">log</code>(<code class="code-string">"[+] Инициализация квантового взлома..."</code>);
-    
-    <code class="code-keyword">await</code> <code class="code-function">sleep</code>(<code class="code-number">1500</code>);
-    <code class="code-keyword">const</code> access = <code class="code-keyword">await</code> <code class="code-function">bruteForceMainframe</code>();
-    
-    <code class="code-keyword">if</code> (access) {
-        <code class="code-function">console</code>.<code class="code-function">log</code>(<code class="code-string">"[!] Квантовый доступ получен!"</code>);
-        <code class="code-keyword">await</code> <code class="code-function">downloadSensitiveData</code>();
-    }
-}
-
-<code class="code-comment">// Введите ваш код ниже...</code></code></pre>
-                    </div>
-                    <div class="editor-footer">
-                        <div class="line-counter">Ln 18, Col 32</div>
-                        <div class="file-info">Quantum JavaScript</div>
-                    </div>
-                </div>
-                
-                <!-- Быстрый ввод -->
-                <div class="quick-command">
-                    <div class="terminal-title">
-                        <i class="fas fa-keyboard"></i>
-                        <h3>QUICK COMMAND</h3>
-                    </div>
-                    <div class="command-input">
-                        <input type="text" id="quickCommand" placeholder="$ Введите команду взлома...">
-                        <button onclick="executeQuickCommand()">EXECUTE</button>
-                    </div>
-                </div>
-            </main>
-            
-            <!-- Панель управления -->
-            <aside class="control-panel">
-                <div class="panel-title">
-                    <i class="fas fa-gamepad"></i>
-                    <h2>CONTROL MATRIX</h2>
-                </div>
-                
-                <div class="buttons-grid">
-                    <button class="control-button" onclick="launchDDOS()">
-                        <div class="btn-icon ddos"><i class="fas fa-network-wired"></i></div>
-                        <div class="btn-label">DDoS ATTACK</div>
-                        <div class="btn-status" id="ddos-status">READY</div>
-                    </button>
-                    
-                    <button class="control-button" onclick="decryptFiles()">
-                        <div class="btn-icon decrypt"><i class="fas fa-unlock-alt"></i></div>
-                        <div class="btn-label">DECRYPT FILES</div>
-                        <div class="btn-status">LOCKED</div>
-                    </button>
-                    
-                    <button class="control-button" onclick="hackSatellite()">
-                        <div class="btn-icon satellite"><i class="fas fa-satellite"></i></div>
-                        <div class="btn-label">SATELLITE HACK</div>
-                        <div class="btn-status">OFFLINE</div>
-                    </button>
-                    
-                    <button class="control-button" onclick="deployWorm()">
-                        <div class="btn-icon worm"><i class="fas fa-bug"></i></div>
-                        <div class="btn-label">DEPLOY WORM</div>
-                        <div class="btn-status">ARMED</div>
-                    </button>
-                    
-                    <button class="control-button" onclick="bypassFirewall()">
-                        <div class="btn-icon firewall"><i class="fas fa-shield-alt"></i></div>
-                        <div class="btn-label">BYPASS FIREWALL</div>
-                        <div class="btn-status">ACTIVE</div>
-                    </button>
-                    
-                    <button class="control-button" onclick="quantumCrack()">
-                        <div class="btn-icon quantum"><i class="fas fa-atom"></i></div>
-                        <div class="btn-label">QUANTUM CRACK</div>
-                        <div class="btn-status">CHARGING</div>
-                    </button>
-                </div>
-                
-                <div class="system-metrics">
-                    <div class="panel-title">
-                        <i class="fas fa-chart-line"></i>
-                        <h3>SYSTEM METRICS</h3>
-                    </div>
-                    <div class="metrics-grid">
-                        <div class="metric-item">
-                            <div class="metric-value gradient-text" id="cpu-load">87%</div>
-                            <div class="metric-label">CPU LOAD</div>
-                        </div>
-                        <div class="metric-item">
-                            <div class="metric-value gradient-text" id="encryption-level">64%</div>
-                            <div class="metric-label">ENCRYPTION</div>
-                        </div>
-                        <div class="metric-item">
-                            <div class="metric-value gradient-text" id="hack-level">23%</div>
-                            <div class="metric-label">HACK LEVEL</div>
-                        </div>
-                        <div class="metric-item">
-                            <div class="metric-value gradient-text" id="quantum-stability">91%</div>
-                            <div class="metric-label">STABILITY</div>
-                        </div>
-                    </div>
-                </div>
-            </aside>
-            
-            <!-- Telegram Bot панель -->
-            <section class="bot-panel">
-                <div class="bot-header">
-                    <div class="bot-title">
-                        <i class="fab fa-telegram"></i>
-                        <h2>TELEGRAM BOT CONTROL</h2>
-                    </div>
-                    <div class="bot-stats">
-                        <div class="stat-item">
-                            <div class="stat-value" id="bot-status">OFFLINE</div>
-                            <div class="stat-label">STATUS</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value" id="groups-count">0</div>
-                            <div class="stat-label">GROUPS</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value" id="messages-sent">0</div>
-                            <div class="stat-label">MESSAGES</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="bot-controls">
-                    <button class="bot-btn" onclick="botCheckStatus()">
-                        <i class="fas fa-heartbeat"></i>
-                        <span>CHECK STATUS</span>
-                    </button>
-                    <button class="bot-btn" onclick="botSendTest()">
-                        <i class="fas fa-vial"></i>
-                        <span>TEST BOT</span>
-                    </button>
-                    <button class="bot-btn" onclick="botSendJoke()">
-                        <i class="fas fa-laugh"></i>
-                        <span>SEND JOKE</span>
-                    </button>
-                    <button class="bot-btn" onclick="botSendToAll()">
-                        <i class="fas fa-broadcast-tower"></i>
-                        <span>BROADCAST</span>
-                    </button>
-                </div>
-                
-                <!-- Управление группами -->
-                <div class="groups-management">
-                    <div class="panel-title">
+            <!-- Карточка управления группами -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">
                         <i class="fas fa-users"></i>
-                        <h3>GROUP MANAGEMENT</h3>
                     </div>
-                    <div class="group-selector-container">
-                        <select id="groupSelector" class="form-control" onchange="updateCurrentGroupInfo()">
-                            <option value="">Выберите группу...</option>
-                        </select>
-                        <button class="btn" onclick="sendMessage()">
-                            <i class="fas fa-paper-plane"></i> Отправить
-                        </button>
+                    <div>
+                        <h2 class="card-title">Управление группами</h2>
+                        <p class="card-subtitle">Добавление и удаление групп</p>
                     </div>
-                    <div class="current-group-info" id="currentGroupInfo">
-                        📢 Группа не выбрана
-                    </div>
-                    <div class="quick-actions">
-                        <button class="quick-btn" onclick="testCurrentGroup()">
-                            <i class="fas fa-vial"></i> Тест группы
-                        </button>
-                        <button class="quick-btn" onclick="loadGroups()">
-                            <i class="fas fa-sync-alt"></i> Обновить
-                        </button>
-                        <button class="quick-btn" onclick="showAddGroupForm()">
-                            <i class="fas fa-plus"></i> Добавить группу
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Добавить новую группу</label>
+                    <div class="input-group">
+                        <input type="text" id="newGroupId" class="form-control" 
+                               placeholder="ID группы (например: -1001234567890)">
+                        <input type="text" id="newGroupName" class="form-control" 
+                               placeholder="Название группы (необязательно)" style="margin-top: 8px;">
+                        <button class="btn btn-primary" onclick="addGroup()">
+                            <i class="fas fa-plus"></i> Добавить
                         </button>
                     </div>
                 </div>
-            </section>
+                
+                <div class="form-group">
+                    <label class="form-label">Сохранённые группы <span class="badge" id="groupsBadge">0</span></label>
+                    <div class="groups-list" id="groupsList">
+                        <div class="group-item">
+                            <div class="group-info">
+                                <div class="group-name">Загрузка...</div>
+                                <div class="group-id">-</div>
+                            </div>
+                            <div class="group-actions">
+                                <button class="group-btn select" disabled>
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button class="group-btn delete" disabled>
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="btn-group">
+                    <button class="btn btn-secondary" onclick="refreshGroups()">
+                        <i class="fas fa-sync-alt"></i> Обновить
+                    </button>
+                    <button class="btn btn-success" onclick="exportGroups()">
+                        <i class="fas fa-download"></i> Экспорт
+                    </button>
+                    <button class="btn btn-danger" onclick="clearAllGroups()">
+                        <i class="fas fa-trash-alt"></i> Очистить
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Карточка быстрых действий -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <div>
+                        <h2 class="card-title">Быстрые действия</h2>
+                        <p class="card-subtitle">Часто используемые команды</p>
+                    </div>
+                </div>
+                
+                <div class="quick-actions">
+                    <div class="quick-action" onclick="sendJoke()">
+                        <div class="quick-icon">
+                            <i class="fas fa-laugh"></i>
+                        </div>
+                        <div class="quick-label">Отправить шутку</div>
+                        <div class="quick-desc">Случайная программистская шутка</div>
+                    </div>
+                    
+                    <div class="quick-action" onclick="sendPoll()">
+                        <div class="quick-icon">
+                            <i class="fas fa-poll"></i>
+                        </div>
+                        <div class="quick-label">Создать опрос</div>
+                        <div class="quick-desc">Опрос "Как дела?"</div>
+                    </div>
+                    
+                    <div class="quick-action" onclick="checkAllGroups()">
+                        <div class="quick-icon">
+                            <i class="fas fa-search"></i>
+                        </div>
+                        <div class="quick-label">Проверить группы</div>
+                        <div class="quick-desc">Тест доступности всех групп</div>
+                    </div>
+                    
+                    <div class="quick-action" onclick="sendToAllGroups()">
+                        <div class="quick-icon">
+                            <i class="fas fa-broadcast-tower"></i>
+                        </div>
+                        <div class="quick-label">Рассылка</div>
+                        <div class="quick-desc">Отправить во все группы</div>
+                    </div>
+                    
+                    <div class="quick-action" onclick="getBotInfo()">
+                        <div class="quick-icon">
+                            <i class="fas fa-info-circle"></i>
+                        </div>
+                        <div class="quick-label">Инфо о боте</div>
+                        <div class="quick-desc">Полная информация</div>
+                    </div>
+                    
+                    <div class="quick-action" onclick="clearHistory()">
+                        <div class="quick-icon">
+                            <i class="fas fa-eraser"></i>
+                        </div>
+                        <div class="quick-label">Очистить историю</div>
+                        <div class="quick-desc">Сбросить счётчики</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Карточка настроек и уведомлений -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">
+                        <i class="fas fa-cogs"></i>
+                    </div>
+                    <div>
+                        <h2 class="card-title">Настройки и логи</h2>
+                        <p class="card-subtitle">Параметры и история действий</p>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Токен бота</label>
+                    <div class="token-display">
+                        <code id="botToken">8280726925:AAHP4QQrGZlr2K09CFs0kkxAsCQFKEnuCHM</code>
+                        <button class="btn-icon" onclick="copyToken()" title="Скопировать">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Режим работы</label>
+                    <select id="botMode" class="form-control">
+                        <option value="normal">Обычный режим</option>
+                        <option value="stealth">Тихий режим</option>
+                        <option value="broadcast">Только рассылка</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Логи действий</label>
+                    <div class="logs-container" id="logsContainer">
+                        <div class="log-entry">
+                            <span class="log-time">[00:00:00]</span>
+                            <span class="log-message">Система запущена</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="saveSettings()">
+                        <i class="fas fa-save"></i> Сохранить
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearLogs()">
+                        <i class="fas fa-trash"></i> Очистить логи
+                    </button>
+                    <button class="btn btn-danger" onclick="resetAll()">
+                        <i class="fas fa-redo"></i> Сбросить всё
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Информация о текущей сессии -->
+        <div class="session-info">
+            <div class="session-item">
+                <i class="fas fa-clock"></i>
+                <span>Сессия: <span id="sessionTime">00:00:00</span></span>
+            </div>
+            <div class="session-item">
+                <i class="fas fa-database"></i>
+                <span>Логов: <span id="logsCount">1</span></span>
+            </div>
+            <div class="session-item">
+                <i class="fas fa-memory"></i>
+                <span>Групп в памяти: <span id="groupsInMemory">0</span></span>
+            </div>
+            <button class="btn-logout" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Выход
+            </button>
         </div>
     </div>
-
+    
     <script src="script.js"></script>
 </body>
 </html>
